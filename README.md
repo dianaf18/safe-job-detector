@@ -1,0 +1,1 @@
+# safe-job-detector
