@@ -7,13 +7,13 @@ import time
 
 # Configuration de la page
 st.set_page_config(
-    page_title="Safe Job Detector Pro",
-    page_icon="🛡️",
+    page_title="Safe Job Hub Pro",
+    page_icon="🔍",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# CSS personnalisé
+# CSS personnalisé complet
 st.markdown("""
 <style>
     .main-header {
@@ -61,10 +61,17 @@ st.markdown("""
         background-color: #236B47;
         color: white !important;
     }
+    .api-status {
+        background: #e8f5e8;
+        padding: 1rem;
+        border-radius: 8px;
+        border-left: 4px solid #2E8B57;
+        margin: 1rem 0;
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# Classe de détection d'arnaques
+# Classe de détection d'arnaques complète
 class AdvancedJobScamDetector:
     def __init__(self):
         self.patterns = {
@@ -114,243 +121,114 @@ class AdvancedJobScamDetector:
         
         return results
 
-# Fonction pour récupérer de VRAIES offres Indeed via API
-def get_real_indeed_jobs(search_term="", location=""):
-    """Récupère de vraies offres Indeed via API RapidAPI"""
+# Fonction API Indeed RÉELLE
+def get_real_indeed_jobs(query="", location="", page=1):
+    """Récupère de VRAIES offres Indeed via RapidAPI"""
+    
+    # Configuration API RapidAPI Indeed
+    url = "https://indeed12.p.rapidapi.com/jobs/search"
+    
+    headers = {
+        "X-RapidAPI-Key": st.secrets.get("RAPIDAPI_KEY", "DEMO_KEY"),
+        "X-RapidAPI-Host": "indeed12.p.rapidapi.com"
+    }
+    
+    params = {
+        "query": query or "emploi",
+        "location": location or "France",
+        "page_id": str(page),
+        "locality": "fr",
+        "fromage": "7"  # Offres des 7 derniers jours
+    }
     
     try:
-        # Configuration API RapidAPI Indeed (gratuite jusqu'à 100 requêtes/mois)
-        url = "https://indeed12.p.rapidapi.com/jobs/search"
-        
-        headers = {
-            "X-RapidAPI-Key": st.secrets.get("RAPIDAPI_KEY", "demo_key_for_testing"),
-            "X-RapidAPI-Host": "indeed12.p.rapidapi.com"
-        }
-        
-        params = {
-            "query": search_term if search_term else "emploi",
-            "location": location if location else "France",
-            "page_id": "1",
-            "locality": "fr"
-        }
-        
-        # Si pas de clé API, utiliser base de données étendue de démonstration
-        if headers["X-RapidAPI-Key"] == "demo_key_for_testing":
-            return get_extended_demo_jobs(search_term, location)
-        
-        response = requests.get(url, headers=headers, params=params, timeout=10)
+        response = requests.get(url, headers=headers, params=params, timeout=15)
         
         if response.status_code == 200:
             data = response.json()
             jobs = []
             
             for job in data.get('hits', []):
+                # Nettoyer et formater les données
+                description = job.get('description', '')
+                if len(description) > 500:
+                    description = description[:500] + '...'
+                
+                jobs.append({
+                    'title': job.get('title', 'Titre non disponible'),
+                    'company': job.get('company', 'Entreprise non spécifiée'),
+                    'location': job.get('location', location or 'France'),
+                    'description': description,
+                    'url': job.get('url', ''),
+                    'date': job.get('date', 'Date non spécifiée'),
+                    'salary': job.get('salary', 'Salaire non spécifié'),
+                    'type': job.get('type', 'CDI'),
+                    'source': 'Indeed'
+                })
+            
+            return jobs
+        
+        elif response.status_code == 429:
+            st.warning("⚠️ Limite API atteinte. Réessayez dans quelques minutes.")
+            return []
+        
+        else:
+            st.error(f"Erreur API Indeed (Code: {response.status_code})")
+            return []
+            
+    except requests.exceptions.Timeout:
+        st.error("⏱️ Timeout API - Réessayez")
+        return []
+    except Exception as e:
+        st.error(f"Erreur de connexion: {str(e)}")
+        return []
+
+# Fonction API LinkedIn (alternative)
+def get_linkedin_jobs(query="", location=""):
+    """Récupère des offres LinkedIn via RapidAPI (alternative)"""
+    
+    url = "https://linkedin-data-api.p.rapidapi.com/search-jobs"
+    
+    headers = {
+        "X-RapidAPI-Key": st.secrets.get("RAPIDAPI_KEY", "DEMO_KEY"),
+        "X-RapidAPI-Host": "linkedin-data-api.p.rapidapi.com"
+    }
+    
+    params = {
+        "keywords": query or "emploi",
+        "locationId": "105015875",  # France
+        "datePosted": "pastWeek",
+        "sort": "mostRelevant"
+    }
+    
+    try:
+        response = requests.get(url, headers=headers, params=params, timeout=15)
+        
+        if response.status_code == 200:
+            data = response.json()
+            jobs = []
+            
+            for job in data.get('data', []):
                 jobs.append({
                     'title': job.get('title', ''),
-                    'company': job.get('company', ''),
+                    'company': job.get('company', {}).get('name', ''),
                     'location': job.get('location', ''),
                     'description': job.get('description', '')[:500] + '...',
-                    'real_url': job.get('url', ''),
-                    'source': 'Indeed',
-                    'posted': job.get('date', ''),
-                    'salary': job.get('salary', 'Non spécifié'),
-                    'contract': job.get('type', 'CDI')
+                    'url': job.get('url', ''),
+                    'date': job.get('postedAt', ''),
+                    'salary': 'Voir sur LinkedIn',
+                    'type': 'CDI',
+                    'source': 'LinkedIn'
                 })
             
             return jobs
         else:
-            return get_extended_demo_jobs(search_term, location)
+            return []
             
     except Exception as e:
-        st.error(f"Erreur API: {str(e)}")
-        return get_extended_demo_jobs(search_term, location)
+        return []
 
-def get_extended_demo_jobs(search_term="", location=""):
-    """Base de données étendue avec des centaines d'offres réelles"""
-    
-    # Base massive d'entreprises françaises par secteur
-    companies_by_sector = {
-        'retail': [
-            'Carrefour', 'Auchan', 'Leclerc', 'Intermarché', 'Super U', 'Casino', 'Monoprix', 'Franprix', 'Picard',
-            'Decathlon', 'Go Sport', 'Intersport', 'Sport 2000', 'Courir', 'JD Sports',
-            'Leroy Merlin', 'Castorama', 'Brico Dépôt', 'Mr Bricolage', 'Weldom', 'Point P',
-            'Fnac', 'Darty', 'Boulanger', 'Cdiscount', 'Rue du Commerce', 'Materiel.net',
-            'Zara', 'H&M', 'Uniqlo', 'C&A', 'Kiabi', 'Celio', 'Jules', 'Camaïeu', 'Promod', 'Mango',
-            'Sephora', 'Marionnaud', 'Nocibé', 'Yves Rocher', 'L\'Occitane', 'Lush', 'The Body Shop',
-            'McDonald\'s', 'KFC', 'Burger King', 'Quick', 'Subway', 'Domino\'s Pizza', 'Pizza Hut',
-            'Starbucks', 'Costa Coffee', 'Columbus Café', 'Paul', 'La Brioche Dorée', 'Boulangerie Julien'
-        ],
-        'tech': [
-            'Capgemini', 'Atos', 'Sopra Steria', 'Thales', 'Dassault Systèmes', 'Ubisoft', 'Gameloft',
-            'OVHcloud', 'Scaleway', 'Criteo', 'BlaBlaCar', 'Doctolib', 'Lydia', 'Contentsquare', 'Dataiku',
-            'Mirakl', 'Algolia', 'Qonto', 'Alan', 'Ledger', 'Shift Technology', 'Murex', 'Amadeus',
-            'Worldline', 'Ingenico', 'Gemalto', 'Bull', 'Orange Business', 'SFR Business', 'Bouygues Telecom'
-        ],
-        'finance': [
-            'BNP Paribas', 'Crédit Agricole', 'Société Générale', 'BPCE', 'Crédit Mutuel', 'La Banque Postale',
-            'AXA', 'Allianz France', 'Generali France', 'Groupama', 'MAIF', 'MACIF', 'Matmut', 'MMA',
-            'Amundi', 'Natixis', 'Rothschild & Co', 'Lazard', 'Oddo BHF', 'Tikehau Capital'
-        ],
-        'automotive': [
-            'Renault', 'Peugeot', 'Citroën', 'DS Automobiles', 'Alpine', 'Michelin', 'Valeo', 'Faurecia',
-            'Plastic Omnium', 'Safran', 'Airbus', 'Dassault Aviation', 'Liebherr', 'Caterpillar'
-        ],
-        'hospitality': [
-            'Accor', 'Pierre & Vacances', 'Club Med', 'Groupe Barrière', 'Groupe Partouche', 'Louvre Hotels',
-            'Sodexo', 'Elior', 'Compass Group', 'API Restauration', 'Restalliance', 'Newrest'
-        ],
-        'healthcare': [
-            'Sanofi', 'Servier', 'Ipsen', 'Pierre Fabre', 'Laboratoires Boiron', 'Biogaran',
-            'Ramsay Santé', 'Korian', 'Orpea', 'DomusVi', 'Colisée', 'Groupe SOS'
-        ],
-        'logistics': [
-            'SNCF Connect', 'La Poste', 'Chronopost', 'DPD', 'UPS France', 'FedEx France',
-            'XPO Logistics', 'FM Logistic', 'Geodis', 'Bolloré Logistics', 'CMA CGM', 'Kuehne + Nagel'
-        ],
-        'education': [
-            'Éducation Nationale', 'CNED', 'AFPA', 'Pôle Emploi', 'CNAM', 'Université Paris-Sorbonne',
-            'Sciences Po', 'HEC Paris', 'ESSEC', 'EDHEC', 'EM Lyon', 'ESCP'
-        ]
-    }
-    
-    # Titres de postes par secteur
-    job_titles_by_sector = {
-        'retail': [
-            'Vendeur/Vendeuse', 'Conseiller de Vente', 'Vendeur Spécialisé', 'Conseiller Client',
-            'Chef de Rayon', 'Responsable de Secteur', 'Manager de Magasin', 'Directeur de Magasin',
-            'Caissier/Caissière', 'Hôte de Caisse', 'Employé Libre Service', 'Mise en Rayon',
-            'Visual Merchandiser', 'Étalagiste', 'Responsable Vitrine', 'Décorateur Magasin',
-            'Inventoriste', 'Gestionnaire de Stock', 'Responsable Réception', 'Magasinier',
-            'Animateur Commercial', 'Démonstrateur', 'Promoteur des Ventes', 'Commercial Terrain',
-            'Serveur/Serveuse', 'Barista', 'Équipier Polyvalent', 'Chef d\'Équipe Restaurant',
-            'Cuisinier', 'Commis de Cuisine', 'Chef de Partie', 'Sous-Chef', 'Chef de Cuisine'
-        ],
-        'tech': [
-            'Développeur Python', 'Développeur Java', 'Développeur JavaScript', 'Développeur PHP',
-            'Développeur Full Stack', 'Développeur Front-end', 'Développeur Back-end', 'Développeur Mobile',
-            'Ingénieur DevOps', 'Administrateur Système', 'Ingénieur Cloud', 'Architecte Solution',
-            'Data Scientist', 'Data Analyst', 'Ingénieur Big Data', 'Machine Learning Engineer',
-            'Product Manager', 'Product Owner', 'Scrum Master', 'Chef de Projet IT',
-            'UX Designer', 'UI Designer', 'Designer Produit', 'Graphiste Web',
-            'Ingénieur Sécurité', 'Consultant Cybersécurité', 'Analyste SOC', 'Pentester',
-            'Technicien Support', 'Administrateur Réseau', 'Ingénieur Système', 'Tech Lead'
-        ],
-        'finance': [
-            'Conseiller Clientèle', 'Chargé de Clientèle', 'Gestionnaire de Patrimoine', 'Conseiller Financier',
-            'Analyste Financier', 'Contrôleur de Gestion', 'Auditeur Interne', 'Risk Manager',
-            'Trader', 'Analyste Crédit', 'Chargé d\'Affaires', 'Directeur d\'Agence',
-            'Conseiller en Assurance', 'Souscripteur', 'Expert Sinistre', 'Actuaire',
-            'Compliance Officer', 'Juriste Financier', 'Analyste Réglementaire'
-        ],
-        'automotive': [
-            'Ingénieur Automobile', 'Technicien Maintenance', 'Mécanicien Auto', 'Carrossier',
-            'Vendeur Automobile', 'Conseiller Service', 'Réceptionnaire Atelier', 'Chef d\'Atelier',
-            'Contrôleur Qualité', 'Ingénieur R&D', 'Designer Automobile', 'Technicien Diagnostic'
-        ],
-        'hospitality': [
-            'Réceptionniste', 'Concierge', 'Gouvernante', 'Femme de Chambre', 'Valet',
-            'Serveur Restaurant', 'Barman', 'Sommelier', 'Chef de Rang', 'Maître d\'Hôtel',
-            'Cuisinier', 'Chef de Cuisine', 'Pâtissier', 'Commis de Cuisine',
-            'Animateur', 'Guide Touristique', 'Responsable Activités', 'Agent d\'Accueil'
-        ],
-        'healthcare': [
-            'Infirmier/Infirmière', 'Aide-Soignant(e)', 'Auxiliaire de Vie', 'Kinésithérapeute',
-            'Pharmacien', 'Préparateur en Pharmacie', 'Technicien de Laboratoire',
-            'Secrétaire Médicale', 'Assistant Médical', 'Brancardier', 'Agent Hospitalier'
-        ],
-        'logistics': [
-            'Chauffeur Livreur', 'Conducteur PL', 'Magasinier', 'Cariste', 'Préparateur de Commandes',
-            'Responsable Logistique', 'Gestionnaire de Stock', 'Agent de Quai', 'Manutentionnaire',
-            'Dispatcher', 'Planificateur Transport', 'Responsable Expédition'
-        ],
-        'education': [
-            'Professeur', 'Enseignant', 'Formateur', 'Conseiller Pédagogique', 'Directeur d\'École',
-            'Surveillant', 'Assistant d\'Éducation', 'Conseiller d\'Orientation', 'Documentaliste'
-        ]
-    }
-    
-    # Villes françaises
-    cities = [
-        'Paris', 'Marseille', 'Lyon', 'Toulouse', 'Nice', 'Nantes', 'Montpellier', 'Strasbourg',
-        'Bordeaux', 'Lille', 'Rennes', 'Reims', 'Saint-Étienne', 'Le Havre', 'Toulon', 'Grenoble',
-        'Dijon', 'Angers', 'Nîmes', 'Villeurbanne', 'Clermont-Ferrand', 'Le Mans', 'Aix-en-Provence',
-        'Brest', 'Tours', 'Limoges', 'Amiens', 'Perpignan', 'Metz', 'Besançon', 'Orléans', 'Mulhouse',
-        'Rouen', 'Caen', 'Nancy', 'Saint-Denis', 'Argenteuil', 'Montreuil', 'Roubaix', 'Tourcoing'
-    ]
-    
-    # Générer des centaines d'offres
-    all_jobs = []
-    
-    for sector, companies in companies_by_sector.items():
-        for company in companies:
-            for job_title in job_titles_by_sector[sector]:
-                # Générer plusieurs offres par combinaison
-                for i in range(3):  # 3 offres par titre par entreprise
-                    city = cities[hash(f"{company}{job_title}{i}") % len(cities)]
-                    
-                    # Calcul salaire réaliste
-                    base_salaries = {
-                        'retail': 1700,
-                        'tech': 45000,
-                        'finance': 35000,
-                        'automotive': 30000,
-                        'hospitality': 1800,
-                        'healthcare': 25000,
-                        'logistics': 22000,
-                        'education': 28000
-                    }
-                    
-                    # Ajustement selon niveau
-                    multiplier = 1.0
-                    if any(word in job_title.lower() for word in ['chef', 'responsable', 'manager', 'directeur']):
-                        multiplier = 1.8
-                    elif any(word in job_title.lower() for word in ['senior', 'lead', 'principal']):
-                        multiplier = 1.4
-                    
-                    salary = int(base_salaries[sector] * multiplier)
-                    
-                    # Description réaliste
-                    descriptions = {
-                        'retail': f"{company} recrute {job_title} pour magasin {city}. Accueil clientèle, conseil vente, encaissement. Formation produits, évolution possible. Horaires variables, prime sur CA.",
-                        'tech': f"{company} recherche {job_title} pour équipe {city}. Technologies modernes, méthodologie agile, télétravail partiel. Projets innovants, formation continue, startup spirit.",
-                        'finance': f"{company} recrute {job_title} secteur {city}. Développement portefeuille clients, conseil financier, suivi dossiers. Formation certifiante, évolution carrière rapide.",
-                        'automotive': f"{company} cherche {job_title} site {city}. Maintenance véhicules, respect procédures qualité, travail équipe. Formation technique, environnement sécurisé.",
-                        'hospitality': f"{company} recrute {job_title} établissement {city}. Service clientèle, respect standards qualité, travail équipe. Formation métier, pourboires, planning adapté.",
-                        'healthcare': f"{company} recherche {job_title} pour {city}. Soins patients, respect protocoles, travail pluridisciplinaire. Formation continue, primes service, évolution.",
-                        'logistics': f"{company} recrute {job_title} plateforme {city}. Préparation commandes, respect délais, conduite engins. Formation sécurité, primes performance.",
-                        'education': f"{company} recherche {job_title} pour {city}. Enseignement, suivi pédagogique, innovation éducative. Formation continue, environnement stimulant."
-                    }
-                    
-                    job = {
-                        'title': job_title,
-                        'company': company,
-                        'location': city,
-                        'description': descriptions[sector],
-                        'real_url': f"https://fr.indeed.com/viewjob?jk={hash(f'{company}{job_title}{city}') % 1000000:06d}",
-                        'source': 'Indeed',
-                        'posted': f"Il y a {(hash(f'{company}{job_title}') % 72) + 1} heures",
-                        'salary': f"{salary}€/mois",
-                        'contract': 'CDI' if sector != 'retail' else ['CDI', 'CDD', 'Intérim'][hash(f'{company}{job_title}') % 3],
-                        'sector': sector
-                    }
-                    all_jobs.append(job)
-    
-    # Filtrage par recherche
-    filtered_jobs = []
-    for job in all_jobs:
-        match_search = not search_term or any(term.lower() in field.lower() for term in search_term.split() 
-                                            for field in [job['title'], job['description'], job['company']])
-        match_location = not location or location.lower() in job['location'].lower()
-        
-        if match_search and match_location:
-            filtered_jobs.append(job)
-    
-    # Mélanger et retourner jusqu'à 100 offres
-    import random
-    random.shuffle(filtered_jobs)
-    return filtered_jobs[:100]
-
-# Base de données utilisateurs
+# Base de données utilisateurs complète
 if 'users_db' not in st.session_state:
     st.session_state.users_db = {
         "demo@example.com": {
@@ -362,11 +240,12 @@ if 'users_db' not in st.session_state:
             "skills": ["Vente", "Relation client", "Anglais"],
             "cv_uploaded": False,
             "searches": [],
-            "saved_jobs": []
+            "saved_jobs": [],
+            "alerts": []
         }
     }
 
-# Fonctions d'authentification
+# Fonctions d'authentification complètes
 def login_user(email, password):
     if email in st.session_state.users_db:
         if st.session_state.users_db[email]["password"] == password:
@@ -386,7 +265,8 @@ def register_user(email, password, name):
             "skills": [],
             "cv_uploaded": False,
             "searches": [],
-            "saved_jobs": []
+            "saved_jobs": [],
+            "alerts": []
         }
         return True
     return False
@@ -395,16 +275,31 @@ def logout_user():
     st.session_state.logged_in = False
     st.session_state.current_user = None
 
+def save_search(query, location, results_count):
+    if st.session_state.logged_in:
+        user_info = st.session_state.users_db[st.session_state.current_user]
+        search_entry = {
+            "query": query,
+            "location": location,
+            "results_count": results_count,
+            "timestamp": datetime.now().isoformat()
+        }
+        user_info['searches'].append(search_entry)
+        # Garder seulement les 10 dernières recherches
+        user_info['searches'] = user_info['searches'][-10:]
+
 # Initialisation des variables de session
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 if 'current_user' not in st.session_state:
     st.session_state.current_user = None
+if 'search_results' not in st.session_state:
+    st.session_state.search_results = []
 
-# Interface principale
+# Interface principale complète
 def main():
-    st.markdown('<h1 class="main-header">🛡️ Safe Job Detector Pro</h1>', unsafe_allow_html=True)
-    st.markdown("### Plateforme d'emploi avec centaines d'offres réelles")
+    st.markdown('<h1 class="main-header">🔍 Safe Job Hub Pro</h1>', unsafe_allow_html=True)
+    st.markdown("### Hub de recherche d'emploi - Toutes les offres d'Internet en un seul endroit")
     
     # Sidebar pour l'authentification
     with st.sidebar:
@@ -449,54 +344,90 @@ def main():
             </div>
             """, unsafe_allow_html=True)
             
+            # Statut API
+            api_key = st.secrets.get("RAPIDAPI_KEY", "DEMO_KEY")
+            if api_key == "DEMO_KEY":
+                st.warning("⚠️ API non configurée")
+            else:
+                st.success("✅ API configurée")
+            
             if st.button("Se déconnecter"):
                 logout_user()
                 st.rerun()
     
     # Contenu principal
     if st.session_state.logged_in:
-        # Onglets principaux
-        tab1, tab2, tab3, tab4 = st.tabs(["🔍 Recherche d'emploi", "👤 Mon Profil", "🛡️ Analyse d'offre", "📊 Mes candidatures"])
+        # Onglets principaux complets
+        tab1, tab2, tab3, tab4, tab5 = st.tabs([
+            "🔍 Recherche d'emploi", 
+            "👤 Mon Profil", 
+            "🛡️ Analyse d'offre", 
+            "📊 Mes candidatures",
+            "⚙️ Configuration API"
+        ])
         
         with tab1:
-            st.header("🎯 Recherche d'emploi - Centaines d'offres disponibles")
+            st.header("🎯 Recherche d'emploi - Hub centralisé")
             
-            col1, col2, col3 = st.columns([2, 1, 1])
+            # Barre de recherche améliorée
+            col1, col2, col3, col4 = st.columns([3, 2, 1, 1])
+            
             with col1:
-                search_term = st.text_input("Poste recherché", placeholder="Ex: vendeur, développeur, serveur...")
+                query = st.text_input("🔍 Poste recherché", placeholder="Ex: développeur, vendeur, serveur...")
+            
             with col2:
-                location = st.text_input("Ville", placeholder="Ex: Paris, Lyon...")
+                location = st.text_input("📍 Localisation", placeholder="Ex: Paris, Lyon...")
+            
             with col3:
+                source = st.selectbox("Source", ["Indeed", "LinkedIn", "Toutes"])
+            
+            with col4:
                 st.write("")
                 st.write("")
                 search_button = st.button("🔍 Rechercher", use_container_width=True)
             
-            if search_button or search_term:
-                with st.spinner("Recherche dans la base de données..."):
-                    job_offers = get_real_indeed_jobs(search_term, location)
+            # Recherche avec vraies API
+            if search_button or query:
+                with st.spinner("🌐 Recherche sur Internet..."):
+                    all_jobs = []
                     
-                    if job_offers:
-                        st.success(f"✅ {len(job_offers)} offres trouvées")
+                    # Recherche Indeed
+                    if source in ["Indeed", "Toutes"]:
+                        indeed_jobs = get_real_indeed_jobs(query, location)
+                        all_jobs.extend(indeed_jobs)
+                    
+                    # Recherche LinkedIn
+                    if source in ["LinkedIn", "Toutes"]:
+                        linkedin_jobs = get_linkedin_jobs(query, location)
+                        all_jobs.extend(linkedin_jobs)
+                    
+                    if all_jobs:
+                        # Sauvegarder la recherche
+                        save_search(query, location, len(all_jobs))
                         
-                        # Afficher des statistiques
+                        st.success(f"✅ {len(all_jobs)} offres trouvées sur Internet")
+                        
+                        # Statistiques
                         col1, col2, col3, col4 = st.columns(4)
                         with col1:
-                            st.metric("Offres trouvées", len(job_offers))
+                            st.metric("Offres trouvées", len(all_jobs))
                         with col2:
-                            cdi_count = len([j for j in job_offers if j.get('contract') == 'CDI'])
-                            st.metric("CDI", cdi_count)
+                            indeed_count = len([j for j in all_jobs if j.get('source') == 'Indeed'])
+                            st.metric("Indeed", indeed_count)
                         with col3:
-                            companies = len(set([j['company'] for j in job_offers]))
-                            st.metric("Entreprises", companies)
+                            linkedin_count = len([j for j in all_jobs if j.get('source') == 'LinkedIn'])
+                            st.metric("LinkedIn", linkedin_count)
                         with col4:
-                            sectors = len(set([j.get('sector', 'Autre') for j in job_offers]))
-                            st.metric("Secteurs", sectors)
+                            companies = len(set([j['company'] for j in all_jobs if j['company']]))
+                            st.metric("Entreprises", companies)
                         
                         detector = AdvancedJobScamDetector()
                         
-                        for i, job in enumerate(job_offers):
+                        # Affichage des offres
+                        for i, job in enumerate(all_jobs):
                             analysis = detector.analyze_text(job['description'])
                             
+                            # Déterminer le niveau de risque
                             if analysis['risk_score'] >= 0.6:
                                 risk_class = "risk-high"
                                 risk_emoji = "🚨"
@@ -513,16 +444,15 @@ def main():
                                 risk_text = "OFFRE SÉCURISÉE"
                                 risk_color = "#2E8B57"
                             
-                            # Afficher toutes les offres sécurisées
+                            # Afficher seulement les offres sécurisées
                             if analysis['risk_score'] < 0.6:
                                 with st.container():
                                     st.markdown(f"""
                                     <div class="job-card">
                                         <h3>{job['title']}</h3>
-                                        <p><strong>🏢 {job['company']}</strong> • 📍 {job['location']} • 🕒 {job['posted']} • 📋 {job.get('contract', 'CDI')}</p>
+                                        <p><strong>🏢 {job['company']}</strong> • 📍 {job['location']} • 🕒 {job['date']} • 🌐 {job['source']}</p>
                                         <p>{job['description']}</p>
-                                        <p>💰 Salaire: {job.get('salary', 'Non spécifié')} • 🌐 Source: {job.get('source', 'Indeed')}</p>
-                                        <p><span style="color: {risk_color};">{risk_emoji} {risk_text}</span></p>
+                                        <p>💰 {job['salary']} • <span style="color: {risk_color};">{risk_emoji} {risk_text}</span></p>
                                     </div>
                                     """, unsafe_allow_html=True)
                                     
@@ -535,10 +465,10 @@ def main():
                                             st.success("Offre sauvegardée!")
                                     
                                     with col2:
-                                        if job.get('real_url'):
+                                        if job.get('url'):
                                             st.markdown(f"""
-                                            <a href="{job['real_url']}" target="_blank" class="job-link-btn">
-                                                🌐 Voir sur Indeed
+                                            <a href="{job['url']}" target="_blank" class="job-link-btn">
+                                                🌐 Voir sur {job['source']}
                                             </a>
                                             """, unsafe_allow_html=True)
                                     
@@ -549,20 +479,19 @@ def main():
                                             
                                             **🎯 Poste** : {job['title']}  
                                             **📍 Lieu** : {job['location']}  
-                                            **💼 Type** : {job.get('contract', 'CDI')}
+                                            **🌐 Source** : {job['source']}
                                             
                                             **✅ ÉTAPES :**
-                                            1. Cliquez sur "Voir sur Indeed"
+                                            1. Cliquez sur "Voir sur {job['source']}"
                                             2. Consultez l'offre complète
                                             3. Préparez CV + lettre de motivation
-                                            4. Postulez directement via Indeed
+                                            4. Postulez directement via {job['source']}
                                             """)
-                        
                     else:
-                        st.info("Aucune offre trouvée. Essayez avec d'autres mots-clés.")
+                        st.warning("Aucune offre trouvée. Vérifiez votre configuration API.")
         
         with tab2:
-            st.header("Mon Profil Professionnel")
+            st.header("👤 Mon Profil Professionnel")
             
             user_info = st.session_state.users_db[st.session_state.current_user]
             
@@ -599,13 +528,14 @@ def main():
                     
                     st.success("Profil mis à jour avec succès!")
             
-            if user_info.get('cv_uploaded'):
-                st.success("✅ CV téléchargé")
-            else:
-                st.warning("⚠️ Aucun CV téléchargé")
+            # Historique des recherches
+            if user_info.get('searches'):
+                st.subheader("🔍 Historique des recherches")
+                for search in user_info['searches'][-5:]:  # 5 dernières recherches
+                    st.write(f"**{search['query']}** à **{search['location']}** - {search['results_count']} offres - {search['timestamp'][:10]}")
         
         with tab3:
-            st.header("Analyse manuelle d'une offre")
+            st.header("🛡️ Analyse manuelle d'une offre")
             
             job_text = st.text_area(
                 "Collez le texte de l'offre d'emploi ici:",
@@ -644,26 +574,26 @@ def main():
                     st.error("Veuillez saisir le texte de l'offre")
         
         with tab4:
-            st.header("Mes candidatures et offres sauvegardées")
+            st.header("📊 Mes candidatures et offres sauvegardées")
             
             user_info = st.session_state.users_db[st.session_state.current_user]
             
             if user_info.get('saved_jobs'):
-                st.subheader(f"Offres sauvegardées ({len(user_info['saved_jobs'])})")
+                st.subheader(f"💾 Offres sauvegardées ({len(user_info['saved_jobs'])})")
                 for i, job in enumerate(user_info['saved_jobs']):
-                    with st.expander(f"{job['title']} - {job['company']}"):
+                    with st.expander(f"{job['title']} - {job['company']} ({job.get('source', 'Internet')})"):
                         st.write(f"**Localisation:** {job['location']}")
                         st.write(f"**Salaire:** {job.get('salary', 'Non spécifié')}")
-                        st.write(f"**Type de contrat:** {job.get('contract', 'CDI')}")
-                        st.write(f"**Source:** {job.get('source', 'Indeed')}")
+                        st.write(f"**Date:** {job.get('date', 'Non spécifiée')}")
+                        st.write(f"**Source:** {job.get('source', 'Internet')}")
                         st.write(f"**Description:** {job['description']}")
                         
                         col1, col2 = st.columns(2)
                         with col1:
-                            if job.get('real_url'):
+                            if job.get('url'):
                                 st.markdown(f"""
-                                <a href="{job['real_url']}" target="_blank" class="job-link-btn">
-                                    🌐 Voir sur Indeed
+                                <a href="{job['url']}" target="_blank" class="job-link-btn">
+                                    🌐 Voir sur {job.get('source', 'Internet')}
                                 </a>
                                 """, unsafe_allow_html=True)
                         with col2:
@@ -672,20 +602,77 @@ def main():
                                 st.rerun()
             else:
                 st.info("Aucune offre sauvegardée pour le moment")
+        
+        with tab5:
+            st.header("⚙️ Configuration API")
+            
+            st.markdown("""
+            <div class="api-status">
+                <h3>🔧 Configuration des API pour accéder aux vraies offres</h3>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Statut actuel
+            api_key = st.secrets.get("RAPIDAPI_KEY", "DEMO_KEY")
+            if api_key == "DEMO_KEY":
+                st.error("❌ **API non configurée** - Vous n'avez pas accès aux vraies offres")
+            else:
+                st.success("✅ **API configurée** - Accès aux vraies offres Indeed et LinkedIn")
+            
+            st.markdown("""
+            ### 📋 Instructions de configuration (GRATUIT)
+            
+            **1. Créer un compte RapidAPI :**
+            - Allez sur https://rapidapi.com/
+            - Inscrivez-vous gratuitement
+            
+            **2. S'abonner aux API (Plans gratuits disponibles) :**
+            - **Indeed API** : https://rapidapi.com/letscrape-6bRBa3QguO5/api/indeed12
+            - **LinkedIn API** : https://rapidapi.com/rockapis/api/linkedin-data-api
+            
+            **3. Récupérer votre clé API :**
+            - Dans votre dashboard RapidAPI
+            - Copiez votre "X-RapidAPI-Key"
+            
+            **4. Configurer dans Streamlit :**
+            - Allez dans les paramètres de votre app Streamlit Cloud
+            - Section "Secrets"
+            - Ajoutez : `RAPIDAPI_KEY = "votre_cle_ici"`
+            
+            ### 📊 Avantages avec API configurée :
+            - ✅ **Centaines d'offres réelles** Indeed et LinkedIn
+            - ✅ **Liens fonctionnels** vers les vraies annonces
+            - ✅ **Données en temps réel** mises à jour quotidiennement
+            - ✅ **Filtrage anti-arnaque** automatique
+            - ✅ **Hub centralisé** - Plus besoin de chercher sur plusieurs sites
+            
+            ### 🆓 Plans gratuits disponibles :
+            - **Indeed API** : 25 requêtes/mois gratuit
+            - **LinkedIn API** : 100 requêtes/mois gratuit
+            """)
+            
+            # Test API
+            if st.button("🧪 Tester la configuration API"):
+                with st.spinner("Test en cours..."):
+                    test_jobs = get_real_indeed_jobs("test", "France")
+                    if test_jobs:
+                        st.success(f"✅ API fonctionnelle ! {len(test_jobs)} offres de test récupérées")
+                    else:
+                        st.error("❌ API non fonctionnelle. Vérifiez votre configuration.")
     
     else:
         st.info("👈 Veuillez vous connecter pour accéder à l'application")
         
-        st.header("🎯 Centaines d'offres d'emploi réelles")
+        st.header("🎯 Hub de recherche d'emploi centralisé")
         
         col1, col2, col3 = st.columns(3)
         
         with col1:
             st.markdown("""
             <div class="stats-card">
-                <h2>📊</h2>
-                <h3>Centaines d'offres</h3>
-                <p>Base de données massive avec toutes les grandes entreprises françaises</p>
+                <h2>🌐</h2>
+                <h3>Vraies offres Internet</h3>
+                <p>Accès direct aux offres Indeed, LinkedIn et autres sites d'emploi</p>
             </div>
             """, unsafe_allow_html=True)
         
@@ -693,8 +680,8 @@ def main():
             st.markdown("""
             <div class="stats-card">
                 <h2>🔗</h2>
-                <h3>Liens Indeed fonctionnels</h3>
-                <p>Accès direct aux vraies annonces Indeed</p>
+                <h3>Liens fonctionnels</h3>
+                <p>Redirection directe vers les vraies annonces sur les sites sources</p>
             </div>
             """, unsafe_allow_html=True)
         
@@ -703,7 +690,7 @@ def main():
             <div class="stats-card">
                 <h2>🛡️</h2>
                 <h3>Protection anti-arnaque</h3>
-                <p>Filtrage automatique des offres suspectes</p>
+                <p>Filtrage automatique des offres suspectes avant affichage</p>
             </div>
             """, unsafe_allow_html=True)
 
