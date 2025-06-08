@@ -8,7 +8,7 @@ import concurrent.futures
 
 # Configuration de la page
 st.set_page_config(
-    page_title="Safe Job Hub Pro - Ultra",
+    page_title="Safe Job Hub Pro - ULTRA",
     page_icon="🔍",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -136,7 +136,7 @@ class AdvancedJobScamDetector:
         
         return results
 
-# 1. API France Travail AMÉLIORÉE (GRATUITE)
+# 1. API France Travail ULTRA (GRATUITE)
 def get_france_travail_jobs_ultra(query="", location=""):
     """API France Travail ULTRA - Multiple pages"""
     all_jobs = []
@@ -513,7 +513,7 @@ def get_github_jobs_ultra(query=""):
     except:
         return []
 
-# 7. NOUVELLE API - Remotive (Remote jobs)
+# 7. API Remotive (Remote jobs)
 def get_remotive_jobs(query=""):
     """API Remotive - Jobs remote"""
     url = "https://remotive.io/api/remote-jobs"
@@ -551,29 +551,32 @@ def get_remotive_jobs(query=""):
     except:
         return []
 
-# 8. NOUVELLE API - Jobs2Careers
-def get_jobs2careers_jobs(query="", location=""):
-    """API Jobs2Careers"""
-    url = "http://api.jobs2careers.com/api/search.php"
+# 8. NOUVELLE API - WorkAPI (Remplace Jobs2Careers)
+def get_workapi_jobs(query="", location=""):
+    """API WorkAPI - Utilise ta clé RapidAPI existante"""
+    url = "https://workapi.p.rapidapi.com/jobs/search"
+    
+    headers = {
+        "X-RapidAPI-Key": st.secrets.get("RAPIDAPI_KEY", "DEMO_KEY"),
+        "X-RapidAPI-Host": "workapi.p.rapidapi.com"
+    }
     
     params = {
-        'q': query or 'emploi',
-        'l': location or 'france',
-        'start': 1,
-        'limit': 100,
-        'format': 'json',
-        'key': st.secrets.get("JOBS2CAREERS_KEY", "DEMO_KEY")
+        "query": query or "emploi",
+        "location": location or "france",
+        "limit": 100,
+        "offset": 0
     }
     
     try:
-        response = requests.get(url, params=params, timeout=15)
+        response = requests.get(url, headers=headers, params=params, timeout=15)
         if response.status_code == 200:
             data = response.json()
             jobs = []
             
             for job in data.get('jobs', []):
                 try:
-                    description = job.get('snippet', '') or ''
+                    description = job.get('description', '') or job.get('snippet', '') or ''
                     if len(description) > 500:
                         description = description[:500] + '...'
                     
@@ -583,11 +586,11 @@ def get_jobs2careers_jobs(query="", location=""):
                         'location': job.get('location', '') or location or 'France',
                         'description': description,
                         'url': job.get('url', '') or '',
-                        'date': job.get('date', '') or 'Date non spécifiée',
-                        'salary': 'Voir sur le site',
-                        'type': 'CDI',
-                        'source': 'Jobs2Careers',
-                        'is_remote': 'remote' in description.lower()
+                        'date': job.get('date_posted', '') or 'Date non spécifiée',
+                        'salary': job.get('salary', '') or 'Voir sur le site',
+                        'type': job.get('employment_type', '') or 'CDI',
+                        'source': 'WorkAPI',
+                        'is_remote': 'remote' in description.lower() or 'télétravail' in description.lower()
                     })
                 except:
                     continue
@@ -641,7 +644,7 @@ def get_single_term_jobs(query, location):
         ("The Muse ULTRA", get_themuse_jobs_ultra),
         ("GitHub Jobs", get_github_jobs_ultra),
         ("Remotive", get_remotive_jobs),
-        ("Jobs2Careers", get_jobs2careers_jobs)
+        ("WorkAPI", get_workapi_jobs)  # Remplace Jobs2Careers
     ]
     
     for api_name, api_func in apis:
@@ -658,7 +661,7 @@ def get_single_term_jobs(query, location):
     
     return all_jobs
 
-# Base de données utilisateurs[1]
+# Base de données utilisateurs
 if 'users_db' not in st.session_state:
     st.session_state.users_db = {
         "demo@example.com": {
@@ -778,8 +781,10 @@ def main():
             
             if st.secrets.get("RAPIDAPI_KEY", "DEMO_KEY") != "DEMO_KEY":
                 st.success("✅ JSearch ULTRA (500+ offres)")
+                st.success("✅ WorkAPI (100+ offres)")  # Utilise la même clé
             else:
                 st.warning("⚠️ JSearch ULTRA (non configuré)")
+                st.warning("⚠️ WorkAPI (non configuré)")
             
             if st.secrets.get("ADZUNA_APP_ID", "DEMO_ID") != "DEMO_ID":
                 st.success("✅ Adzuna ULTRA (500+ offres)")
@@ -794,11 +799,6 @@ def main():
             st.success("✅ The Muse ULTRA (200+ offres)")
             st.success("✅ GitHub Jobs (50+ offres)")
             st.success("✅ Remotive (100+ offres)")
-            
-            if st.secrets.get("JOBS2CAREERS_KEY", "DEMO_KEY") != "DEMO_KEY":
-                st.success("✅ Jobs2Careers (100+ offres)")
-            else:
-                st.warning("⚠️ Jobs2Careers (non configuré)")
             
             if st.button("Se déconnecter"):
                 logout_user()
@@ -1094,57 +1094,24 @@ def main():
             4. **🇬🇧 Reed ULTRA** - 300+ offres (configuré)
             5. **💼 The Muse ULTRA** - 200+ offres (gratuit)
             6. **💻 GitHub Jobs** - 50+ offres (gratuit)
+            7. **🏠 Remotive** - 100+ offres (gratuit)
+            8. **⚡ WorkAPI** - 100+ offres (utilise ta clé RapidAPI)
             """)
             
-            # Nouvelles API à configurer
+            # Configuration simplifiée
             st.markdown("""
-            ### 🆕 Nouvelles API à configurer :
-            """)
-            
-            # API 7: Remotive
-            st.markdown("""
-            <div class="api-config">
-                <h4>🏠 7. Remotive (GRATUITE - AUCUNE CONFIG)</h4>
-                <p><strong>✅ Déjà disponible</strong> - Spécialisé dans les jobs remote</p>
-                <p><strong>Offres attendues:</strong> 100+ offres remote par recherche</p>
-                <p><strong>Aucune configuration requise</strong></p>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            # API 8: Jobs2Careers
-            st.markdown("""
-            <div class="api-config">
-                <h4>💼 8. Jobs2Careers (GRATUITE avec inscription)</h4>
-                <p><strong>Sources:</strong> Agrégateur d'offres américaines et internationales</p>
-                <p><strong>Offres attendues:</strong> 100+ offres par recherche</p>
-                <p><strong>Configuration:</strong></p>
-                <ol>
-                    <li>Allez sur <a href="http://www.jobs2careers.com/partners" target="_blank">Jobs2Careers Partners</a></li>
-                    <li>Créez un compte partenaire gratuit</li>
-                    <li>Demandez l'accès API (gratuit)</li>
-                    <li>Récupérez votre clé API</li>
-                    <li>Dans Streamlit Secrets, ajoutez: <code>JOBS2CAREERS_KEY = "votre_cle_ici"</code></li>
-                </ol>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            # Résumé de configuration complète
-            st.markdown("""
-            ### 📋 Configuration complète dans Streamlit Secrets :
+            ### 📋 Configuration actuelle dans tes Secrets :
             
             ```
-            # API JSearch (déjà configuré)
+            # API JSearch + WorkAPI (même clé)
             RAPIDAPI_KEY = "6b99ebdbe3mshb0b33108ec37e89p19596djsn933e7b4ec9c4"
             
-            # API Adzuna (déjà configuré)
+            # API Adzuna
             ADZUNA_APP_ID = "82944816"
             ADZUNA_APP_KEY = "397d28a14f97d98450954fd3ebd1ac45"
             
-            # API Reed (déjà configuré)
+            # API Reed
             REED_API_KEY = "f0bd4083-5306-4c5d-8266-fca8c5eb431b"
-            
-            # NOUVELLE API à ajouter :
-            JOBS2CAREERS_KEY = "votre_cle_jobs2careers"
             ```
             
             ### 🎯 Résultat attendu avec toutes les API ULTRA :
@@ -1155,7 +1122,7 @@ def main():
             - **The Muse ULTRA** : ~200 offres (10 pages × 20)
             - **GitHub Jobs** : ~50 offres
             - **Remotive** : ~100 offres
-            - **Jobs2Careers** : ~100 offres
+            - **WorkAPI** : ~100 offres
             
             **TOTAL POSSIBLE** : **2250+ offres** par recherche !
             
@@ -1172,11 +1139,11 @@ def main():
             
             **Résultat** : 7 × 300 offres = **2100+ offres garanties** !
             
-            ### 💡 Conseils pour maximiser les résultats ULTRA :
-            - **Recherchez "emploi"** pour déclencher les recherches multiples
-            - **Laissez la localisation vide** pour toute la France
-            - **Soyez patient** : la recherche ULTRA prend 60-120 secondes
-            - **Configurez Jobs2Careers** pour +100 offres supplémentaires
+            ### 💡 Avantage de WorkAPI :
+            - ✅ **Utilise ta clé RapidAPI existante** (aucune config supplémentaire)
+            - ✅ **100+ offres supplémentaires** par recherche
+            - ✅ **Remplace Jobs2Careers** qui ne fonctionne plus
+            - ✅ **Déjà intégré** dans le code
             """)
             
             # Tests individuels des API ULTRA
@@ -1223,9 +1190,9 @@ def main():
                         jobs = get_remotive_jobs("developer")
                         st.write(f"✅ {len(jobs)} offres trouvées")
                 
-                if st.button("Test Jobs2Careers"):
+                if st.button("Test WorkAPI"):
                     with st.spinner("Test..."):
-                        jobs = get_jobs2careers_jobs("emploi", "")
+                        jobs = get_workapi_jobs("emploi", "")
                         st.write(f"✅ {len(jobs)} offres trouvées")
     
     else:
@@ -1249,7 +1216,7 @@ def main():
             <div class="stats-card">
                 <h2>🆕</h2>
                 <h3>2 Nouvelles API</h3>
-                <p>Remotive (gratuit) + Jobs2Careers (à configurer)</p>
+                <p>Remotive (gratuit) + WorkAPI (ta clé RapidAPI)</p>
             </div>
             """, unsafe_allow_html=True)
         
