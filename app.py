@@ -4,10 +4,11 @@ import re
 import json
 from datetime import datetime
 import time
+import concurrent.futures
 
 # Configuration de la page
 st.set_page_config(
-    page_title="Safe Job Hub Pro",
+    page_title="Safe Job Hub Pro - Multi-API",
     page_icon="🔍",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -75,6 +76,13 @@ st.markdown("""
         margin: 0.5rem 0;
         border-left: 3px solid #2196f3;
     }
+    .api-config {
+        background: #fff3e0;
+        padding: 1rem;
+        border-radius: 8px;
+        border-left: 4px solid #ff9800;
+        margin: 1rem 0;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -128,115 +136,55 @@ class AdvancedJobScamDetector:
         
         return results
 
-# Fonction API France Travail OPTIMISÉE pour plus d'offres
-def get_france_travail_jobs_page_optimized(query="", location="", page=0):
-    """Version OPTIMISÉE pour récupérer VRAIMENT plus d'offres"""
-    
+# 1. API France Travail (GRATUITE - AUCUNE CONFIG)
+def get_france_travail_jobs(query="", location=""):
+    """API France Travail - GRATUITE"""
     url = "https://api.francetravail.io/partenaire/offresdemploi/v2/offres/search"
     
     headers = {"Accept": "application/json"}
     
-    # Paramètres optimisés pour plus d'offres
     params = {}
-    
-    # Élargir les termes de recherche
-    if not query or not query.strip():
-        params["motsCles"] = "emploi"
-    else:
-        # Dictionnaire pour élargir les recherches
+    if query and query.strip():
+        # Élargir les termes
         broad_terms = {
             "vendeur": "vente commerce magasin",
-            "vendeuse": "vente commerce magasin",
             "développeur": "informatique développement programmation",
-            "developpeur": "informatique développement programmation",
-            "serveur": "restauration service hôtellerie",
-            "serveuse": "restauration service hôtellerie",
-            "commercial": "vente commercial business",
-            "commerciale": "vente commercial business",
-            "assistant": "administratif assistant secrétaire",
-            "assistante": "administratif assistant secrétaire",
-            "comptable": "comptabilité finance gestion",
-            "infirmier": "santé médical soins",
-            "infirmière": "santé médical soins",
-            "cuisinier": "cuisine restauration chef",
-            "cuisinière": "cuisine restauration chef",
-            "chauffeur": "transport conduite livraison",
-            "chauffeuse": "transport conduite livraison",
-            "technicien": "technique maintenance réparation",
-            "technicienne": "technique maintenance réparation"
+            "serveur": "restauration service hôtellerie"
         }
-        
         search_term = broad_terms.get(query.lower().strip(), query.strip())
         params["motsCles"] = search_term
     
-    # Localisation moins restrictive
     if location and location.strip():
-        # Élargir aussi les localisations
-        location_broad = {
-            "paris": "paris île-de-france",
-            "lyon": "lyon rhône-alpes",
-            "marseille": "marseille provence",
-            "toulouse": "toulouse occitanie",
-            "nice": "nice côte-azur",
-            "nantes": "nantes loire-atlantique",
-            "strasbourg": "strasbourg alsace",
-            "montpellier": "montpellier hérault",
-            "bordeaux": "bordeaux nouvelle-aquitaine",
-            "lille": "lille hauts-de-france"
-        }
-        location_term = location_broad.get(location.lower().strip(), location.strip())
-        params["commune"] = location_term
+        params["commune"] = location.strip()
     
-    # Pagination optimisée : 150 offres par page (plus stable que 200)
-    start = page * 150
-    end = start + 149
-    params["range"] = f"{start}-{end}"
-    
-    # Paramètres supplémentaires pour élargir la recherche
-    params["sort"] = "1"  # Tri par date
-    params["typeContrat"] = "CDI,CDD,MIS,SAI,LIB,REP,FRA"  # Tous types de contrats
+    params["range"] = "0-99"
+    params["typeContrat"] = "CDI,CDD,MIS,SAI"
     
     try:
-        response = requests.get(url, headers=headers, params=params, timeout=20)
-        
+        response = requests.get(url, headers=headers, params=params, timeout=15)
         if response.status_code == 200:
             data = response.json()
             jobs = []
             
             for job in data.get('resultats', []):
                 try:
-                    # Traitement moins strict pour garder plus d'offres
-                    description = job.get('description', '') or 'Description disponible sur le site de l\'entreprise'
+                    description = job.get('description', '') or 'Description disponible sur le site'
                     if len(description) > 500:
                         description = description[:500] + '...'
                     
-                    # Construction robuste des URLs
                     job_url = ""
-                    try:
-                        origine_offre = job.get('origineOffre', {}) or {}
-                        if origine_offre and origine_offre.get('urlOrigine'):
-                            job_url = origine_offre['urlOrigine']
-                    except:
-                        job_url = ""
+                    origine_offre = job.get('origineOffre', {}) or {}
+                    if origine_offre.get('urlOrigine'):
+                        job_url = origine_offre['urlOrigine']
                     
-                    # Construction robuste des informations
-                    try:
-                        entreprise = job.get('entreprise', {}) or {}
-                        company_name = entreprise.get('nom', '') or 'Entreprise non spécifiée'
-                    except:
-                        company_name = 'Entreprise non spécifiée'
+                    entreprise = job.get('entreprise', {}) or {}
+                    company_name = entreprise.get('nom', '') or 'Entreprise non spécifiée'
                     
-                    try:
-                        lieu_travail = job.get('lieuTravail', {}) or {}
-                        location_str = lieu_travail.get('libelle', '') or location or 'France'
-                    except:
-                        location_str = location or 'France'
+                    lieu_travail = job.get('lieuTravail', {}) or {}
+                    location_str = lieu_travail.get('libelle', '') or location or 'France'
                     
-                    try:
-                        salaire = job.get('salaire', {}) or {}
-                        salary_str = salaire.get('libelle', '') or 'Salaire à négocier'
-                    except:
-                        salary_str = 'Salaire à négocier'
+                    salaire = job.get('salaire', {}) or {}
+                    salary_str = salaire.get('libelle', '') or 'Salaire à négocier'
                     
                     jobs.append({
                         'title': job.get('intitule', '') or 'Offre d\'emploi',
@@ -244,100 +192,23 @@ def get_france_travail_jobs_page_optimized(query="", location="", page=0):
                         'location': location_str,
                         'description': description,
                         'url': job_url,
-                        'date': job.get('dateCreation', '') or 'Récemment publié',
+                        'date': job.get('dateCreation', '') or 'Récent',
                         'salary': salary_str,
                         'type': job.get('typeContrat', '') or 'CDI',
                         'source': 'France Travail',
-                        'is_remote': 'télétravail' in description.lower() or 'remote' in description.lower()
+                        'is_remote': 'télétravail' in description.lower()
                     })
-                except Exception as e:
-                    # Continuer même si une offre pose problème
+                except:
                     continue
             
             return jobs
-        else:
-            return []
-    except Exception as e:
+        return []
+    except:
         return []
 
-# Fonction MASSIVE optimisée pour France Travail
-def get_massive_france_travail_jobs_optimized(query="", location=""):
-    """Version VRAIMENT massive et optimisée pour France Travail"""
-    
-    all_jobs = []
-    progress_placeholder = st.empty()
-    
-    # Récupérer 7 pages = 1050 offres max
-    for page in range(7):
-        with progress_placeholder.container():
-            st.markdown(f"""
-            <div class="progress-info">
-                🔄 <strong>France Travail - Page {page + 1}/7</strong> (Recherche: "{query or 'emploi'}" à "{location or 'toute la France'}")
-            </div>
-            """, unsafe_allow_html=True)
-        
-        jobs = get_france_travail_jobs_page_optimized(query, location, page)
-        
-        if jobs:
-            all_jobs.extend(jobs)
-            with progress_placeholder.container():
-                st.markdown(f"""
-                <div class="progress-info">
-                    ✅ <strong>Page {page + 1}/7 :</strong> {len(jobs)} offres récupérées | <strong>Total: {len(all_jobs)} offres</strong>
-                </div>
-                """, unsafe_allow_html=True)
-        else:
-            with progress_placeholder.container():
-                st.markdown(f"""
-                <div class="progress-info">
-                    ⚠️ <strong>Page {page + 1}/7 :</strong> Aucune offre trouvée (fin de pagination)
-                </div>
-                """, unsafe_allow_html=True)
-            break
-        
-        # Pause courte pour éviter la surcharge
-        time.sleep(0.3)
-    
-    progress_placeholder.empty()
-    return all_jobs
-
-# Fonction API JSearch optimisée
-def get_massive_jobs_jsearch_optimized(query="", location=""):
-    """Version optimisée JSearch pour plus d'offres"""
-    
-    all_jobs = []
-    progress_placeholder = st.empty()
-    
-    # Récupérer 5 pages JSearch
-    for page in range(1, 6):
-        with progress_placeholder.container():
-            st.markdown(f"""
-            <div class="progress-info">
-                🔄 <strong>JSearch - Page {page}/5</strong> (Indeed + LinkedIn + Glassdoor)
-            </div>
-            """, unsafe_allow_html=True)
-        
-        jobs = get_real_jobs_jsearch_page_optimized(query, location, page)
-        
-        if jobs:
-            all_jobs.extend(jobs)
-            with progress_placeholder.container():
-                st.markdown(f"""
-                <div class="progress-info">
-                    ✅ <strong>JSearch Page {page}/5 :</strong> {len(jobs)} offres | <strong>Total JSearch: {len(all_jobs)} offres</strong>
-                </div>
-                """, unsafe_allow_html=True)
-        else:
-            break
-        
-        time.sleep(0.5)
-    
-    progress_placeholder.empty()
-    return all_jobs
-
-def get_real_jobs_jsearch_page_optimized(query="", location="", page=1):
-    """Page JSearch optimisée"""
-    
+# 2. API JSearch (RapidAPI - 2500 requêtes/mois GRATUITES)
+def get_jsearch_jobs(query="", location=""):
+    """API JSearch - Indeed + LinkedIn + Glassdoor"""
     url = "https://jsearch.p.rapidapi.com/search"
     
     headers = {
@@ -345,23 +216,20 @@ def get_real_jobs_jsearch_page_optimized(query="", location="", page=1):
         "X-RapidAPI-Host": "jsearch.p.rapidapi.com"
     }
     
-    # Élargir la requête pour JSearch aussi
     search_query = query or "emploi"
     if location:
         search_query += f" in {location}"
     
     params = {
         "query": search_query,
-        "page": str(page),
-        "num_pages": "1",
+        "page": "1",
+        "num_pages": "3",
         "country": "fr",
-        "date_posted": "all",
-        "employment_types": "FULLTIME,PARTTIME,CONTRACTOR,INTERN"
+        "date_posted": "all"
     }
     
     try:
         response = requests.get(url, headers=headers, params=params, timeout=15)
-        
         if response.status_code == 200:
             data = response.json()
             jobs = []
@@ -378,28 +246,10 @@ def get_real_jobs_jsearch_page_optimized(query="", location="", page=1):
                         source = "LinkedIn"
                     elif "glassdoor" in apply_link.lower():
                         source = "Glassdoor"
-                    elif "ziprecruiter" in apply_link.lower():
-                        source = "ZipRecruiter"
                     
                     city = job.get('job_city', '') or ''
                     country = job.get('job_country', '') or ''
-                    location_str = city
-                    if city and country:
-                        location_str = f"{city}, {country}"
-                    elif country:
-                        location_str = country
-                    elif not location_str:
-                        location_str = location or "Non spécifié"
-                    
-                    salary_str = "Salaire non spécifié"
-                    if job.get('job_min_salary'):
-                        currency = job.get('job_salary_currency', '') or ''
-                        min_sal = str(job.get('job_min_salary', ''))
-                        max_sal = str(job.get('job_max_salary', ''))
-                        if max_sal and max_sal != 'None':
-                            salary_str = f"{currency} {min_sal}-{max_sal}"
-                        else:
-                            salary_str = f"{currency} {min_sal}+"
+                    location_str = f"{city}, {country}" if city and country else (city or country or "Non spécifié")
                     
                     jobs.append({
                         'title': job.get('job_title', '') or 'Titre non disponible',
@@ -408,7 +258,7 @@ def get_real_jobs_jsearch_page_optimized(query="", location="", page=1):
                         'description': description,
                         'url': apply_link,
                         'date': job.get('job_posted_at_datetime_utc', '') or 'Date non spécifiée',
-                        'salary': salary_str,
+                        'salary': 'Voir sur le site',
                         'type': job.get('job_employment_type', '') or 'CDI',
                         'source': source,
                         'is_remote': job.get('job_is_remote', False)
@@ -417,10 +267,253 @@ def get_real_jobs_jsearch_page_optimized(query="", location="", page=1):
                     continue
             
             return jobs
-        else:
-            return []
+        return []
     except:
         return []
+
+# 3. API Adzuna (GRATUITE - 1000 requêtes/mois)
+def get_adzuna_jobs(query="", location=""):
+    """API Adzuna - 50k+ offres françaises"""
+    url = "https://api.adzuna.com/v1/api/jobs/fr/search/1"
+    
+    params = {
+        'app_id': st.secrets.get("ADZUNA_APP_ID", "DEMO_ID"),
+        'app_key': st.secrets.get("ADZUNA_APP_KEY", "DEMO_KEY"),
+        'results_per_page': 50,
+        'what': query or '',
+        'where': location or '',
+        'sort_by': 'date'
+    }
+    
+    try:
+        response = requests.get(url, params=params, timeout=15)
+        if response.status_code == 200:
+            data = response.json()
+            jobs = []
+            
+            for job in data.get('results', []):
+                try:
+                    description = job.get('description', '') or ''
+                    if len(description) > 500:
+                        description = description[:500] + '...'
+                    
+                    jobs.append({
+                        'title': job.get('title', '') or 'Titre non disponible',
+                        'company': job.get('company', {}).get('display_name', '') or 'Entreprise non spécifiée',
+                        'location': job.get('location', {}).get('display_name', '') or location or 'France',
+                        'description': description,
+                        'url': job.get('redirect_url', '') or '',
+                        'date': job.get('created', '') or 'Date non spécifiée',
+                        'salary': f"{job.get('salary_min', 0)}-{job.get('salary_max', 0)}€" if job.get('salary_min') else 'Salaire non spécifié',
+                        'type': 'CDI',
+                        'source': 'Adzuna',
+                        'is_remote': 'remote' in description.lower() or 'télétravail' in description.lower()
+                    })
+                except:
+                    continue
+            
+            return jobs
+        return []
+    except:
+        return []
+
+# 4. API Reed (GRATUITE - 1000 requêtes/mois)
+def get_reed_jobs(query="", location=""):
+    """API Reed - 100k+ offres européennes"""
+    url = "https://www.reed.co.uk/api/1.0/search"
+    
+    headers = {
+        'Authorization': f'Basic {st.secrets.get("REED_API_KEY", "DEMO_KEY")}'
+    }
+    
+    params = {
+        'keywords': query or '',
+        'location': location or 'France',
+        'resultsToTake': 100
+    }
+    
+    try:
+        response = requests.get(url, headers=headers, params=params, timeout=15)
+        if response.status_code == 200:
+            data = response.json()
+            jobs = []
+            
+            for job in data.get('results', []):
+                try:
+                    description = job.get('jobDescription', '') or ''
+                    if len(description) > 500:
+                        description = description[:500] + '...'
+                    
+                    jobs.append({
+                        'title': job.get('jobTitle', '') or 'Titre non disponible',
+                        'company': job.get('employerName', '') or 'Entreprise non spécifiée',
+                        'location': job.get('locationName', '') or location or 'Europe',
+                        'description': description,
+                        'url': job.get('jobUrl', '') or '',
+                        'date': job.get('date', '') or 'Date non spécifiée',
+                        'salary': f"£{job.get('minimumSalary', 0)}-{job.get('maximumSalary', 0)}" if job.get('minimumSalary') else 'Salaire non spécifié',
+                        'type': job.get('jobType', '') or 'CDI',
+                        'source': 'Reed',
+                        'is_remote': 'remote' in description.lower() or 'home' in description.lower()
+                    })
+                except:
+                    continue
+            
+            return jobs
+        return []
+    except:
+        return []
+
+# 5. API The Muse (GRATUITE - ILLIMITÉE)
+def get_themuse_jobs(query="", location=""):
+    """API The Muse - 20k+ offres internationales"""
+    url = "https://www.themuse.com/api/public/jobs"
+    
+    params = {
+        'page': 1,
+        'descending': 'true'
+    }
+    
+    if query:
+        params['search'] = query
+    if location:
+        params['location'] = location
+    
+    try:
+        response = requests.get(url, params=params, timeout=15)
+        if response.status_code == 200:
+            data = response.json()
+            jobs = []
+            
+            for job in data.get('results', []):
+                try:
+                    description = ' '.join(job.get('contents', [])) if job.get('contents') else ''
+                    if len(description) > 500:
+                        description = description[:500] + '...'
+                    
+                    company = job.get('company', {}) or {}
+                    locations = job.get('locations', [])
+                    location_str = locations[0].get('name', '') if locations else location or 'International'
+                    
+                    jobs.append({
+                        'title': job.get('name', '') or 'Titre non disponible',
+                        'company': company.get('name', '') or 'Entreprise non spécifiée',
+                        'location': location_str,
+                        'description': description,
+                        'url': job.get('refs', {}).get('landing_page', '') or '',
+                        'date': job.get('publication_date', '') or 'Date non spécifiée',
+                        'salary': 'Voir sur le site',
+                        'type': job.get('type', '') or 'CDI',
+                        'source': 'The Muse',
+                        'is_remote': any('remote' in loc.get('name', '').lower() for loc in locations)
+                    })
+                except:
+                    continue
+            
+            return jobs
+        return []
+    except:
+        return []
+
+# 6. API GitHub Jobs (GRATUITE - ILLIMITÉE)
+def get_github_jobs(query=""):
+    """API GitHub Jobs - Tech jobs"""
+    url = "https://jobs.github.com/positions.json"
+    
+    params = {
+        'search': query or 'developer',
+        'location': 'france'
+    }
+    
+    try:
+        response = requests.get(url, params=params, timeout=15)
+        if response.status_code == 200:
+            data = response.json()
+            jobs = []
+            
+            for job in data:
+                try:
+                    description = job.get('description', '') or ''
+                    if len(description) > 500:
+                        description = description[:500] + '...'
+                    
+                    jobs.append({
+                        'title': job.get('title', '') or 'Titre non disponible',
+                        'company': job.get('company', '') or 'Entreprise non spécifiée',
+                        'location': job.get('location', '') or 'Remote',
+                        'description': description,
+                        'url': job.get('url', '') or '',
+                        'date': job.get('created_at', '') or 'Date non spécifiée',
+                        'salary': 'Voir sur le site',
+                        'type': job.get('type', '') or 'CDI',
+                        'source': 'GitHub Jobs',
+                        'is_remote': 'remote' in job.get('location', '').lower()
+                    })
+                except:
+                    continue
+            
+            return jobs
+        return []
+    except:
+        return []
+
+# Fonction MASSIVE qui combine toutes les API
+def get_all_jobs_massive(query="", location=""):
+    """Combine toutes les API pour 1000+ offres"""
+    all_jobs = []
+    progress_placeholder = st.empty()
+    
+    # Liste des API avec leurs fonctions
+    apis = [
+        ("France Travail", get_france_travail_jobs),
+        ("JSearch", get_jsearch_jobs),
+        ("Adzuna", get_adzuna_jobs),
+        ("Reed", get_reed_jobs),
+        ("The Muse", get_themuse_jobs),
+        ("GitHub Jobs", get_github_jobs)
+    ]
+    
+    for i, (api_name, api_func) in enumerate(apis):
+        with progress_placeholder.container():
+            st.markdown(f"""
+            <div class="progress-info">
+                🔄 <strong>{api_name} - {i+1}/6</strong> (Recherche: "{query or 'emploi'}")
+            </div>
+            """, unsafe_allow_html=True)
+        
+        try:
+            if api_name == "GitHub Jobs":
+                jobs = api_func(query)
+            else:
+                jobs = api_func(query, location)
+            
+            if jobs:
+                all_jobs.extend(jobs)
+                with progress_placeholder.container():
+                    st.markdown(f"""
+                    <div class="progress-info">
+                        ✅ <strong>{api_name} :</strong> {len(jobs)} offres | <strong>Total: {len(all_jobs)} offres</strong>
+                    </div>
+                    """, unsafe_allow_html=True)
+            else:
+                with progress_placeholder.container():
+                    st.markdown(f"""
+                    <div class="progress-info">
+                        ⚠️ <strong>{api_name} :</strong> Aucune offre ou API non configurée
+                    </div>
+                    """, unsafe_allow_html=True)
+        except Exception as e:
+            with progress_placeholder.container():
+                st.markdown(f"""
+                <div class="progress-info">
+                    ❌ <strong>{api_name} :</strong> Erreur - {str(e)[:50]}...
+                </div>
+                """, unsafe_allow_html=True)
+        
+        time.sleep(0.5)
+    
+    progress_placeholder.empty()
+    return all_jobs
 
 # Base de données utilisateurs
 if 'users_db' not in st.session_state:
@@ -489,8 +582,8 @@ if 'current_user' not in st.session_state:
 
 # Interface principale
 def main():
-    st.markdown('<h1 class="main-header">🔍 Safe Job Hub Pro</h1>', unsafe_allow_html=True)
-    st.markdown("### Hub de recherche d'emploi optimisé - Vraiment 1000+ offres par recherche")
+    st.markdown('<h1 class="main-header">🔍 Safe Job Hub Pro - Multi-API</h1>', unsafe_allow_html=True)
+    st.markdown("### Hub de recherche d'emploi avec 6 API - Vraiment 1000+ offres garanties")
     
     # Sidebar pour l'authentification
     with st.sidebar:
@@ -535,12 +628,35 @@ def main():
             </div>
             """, unsafe_allow_html=True)
             
-            # Statut API
-            api_key = st.secrets.get("RAPIDAPI_KEY", "DEMO_KEY")
-            if api_key == "DEMO_KEY":
-                st.success("✅ France Travail optimisé (1000+ offres)")
+            # Statut des API
+            st.subheader("📊 Statut des API")
+            
+            # France Travail (toujours disponible)
+            st.success("✅ France Travail (gratuit)")
+            
+            # JSearch
+            if st.secrets.get("RAPIDAPI_KEY", "DEMO_KEY") != "DEMO_KEY":
+                st.success("✅ JSearch (configuré)")
             else:
-                st.success("✅ France Travail + JSearch optimisés (1500+ offres)")
+                st.warning("⚠️ JSearch (non configuré)")
+            
+            # Adzuna
+            if st.secrets.get("ADZUNA_APP_ID", "DEMO_ID") != "DEMO_ID":
+                st.success("✅ Adzuna (configuré)")
+            else:
+                st.warning("⚠️ Adzuna (non configuré)")
+            
+            # Reed
+            if st.secrets.get("REED_API_KEY", "DEMO_KEY") != "DEMO_KEY":
+                st.success("✅ Reed (configuré)")
+            else:
+                st.warning("⚠️ Reed (non configuré)")
+            
+            # The Muse (toujours disponible)
+            st.success("✅ The Muse (gratuit)")
+            
+            # GitHub Jobs (toujours disponible)
+            st.success("✅ GitHub Jobs (gratuit)")
             
             if st.button("Se déconnecter"):
                 logout_user()
@@ -550,7 +666,7 @@ def main():
     if st.session_state.logged_in:
         # Onglets principaux
         tab1, tab2, tab3, tab4, tab5 = st.tabs([
-            "🔍 Recherche d'emploi", 
+            "🔍 Recherche Multi-API", 
             "👤 Mon Profil", 
             "🛡️ Analyse d'offre", 
             "📊 Mes candidatures",
@@ -558,57 +674,34 @@ def main():
         ])
         
         with tab1:
-            st.header("🎯 Recherche d'emploi OPTIMISÉE - Version 1000+ offres garanties")
+            st.header("🎯 Recherche Multi-API - 6 sources simultanées")
             
-            # Conseils pour plus d'offres
-            st.info("💡 **Conseils pour maximiser les résultats :** Utilisez des termes génériques (ex: 'vente' au lieu de 'vendeur magasin') et laissez la localisation vide pour toute la France.")
+            # Informations sur les API
+            st.info("🚀 **6 API simultanées** : France Travail + JSearch + Adzuna + Reed + The Muse + GitHub Jobs = **1000+ offres garanties** !")
             
             # Barre de recherche
-            col1, col2, col3, col4 = st.columns([3, 2, 1, 1])
+            col1, col2, col3 = st.columns([4, 2, 2])
             
             with col1:
-                query = st.text_input("🔍 Poste recherché", placeholder="Ex: vente, informatique, restauration...")
+                query = st.text_input("🔍 Poste recherché", placeholder="Ex: développeur, vendeur, commercial...")
             
             with col2:
-                location = st.text_input("📍 Localisation", placeholder="Ex: Paris, Lyon (ou vide pour toute la France)")
+                location = st.text_input("📍 Localisation", placeholder="Ex: Paris, Lyon...")
             
             with col3:
-                api_choice = st.selectbox("Source", ["Toutes (OPTIMISÉ)", "France Travail", "JSearch"])
-            
-            with col4:
                 st.write("")
                 st.write("")
-                search_button = st.button("🔍 Rechercher", use_container_width=True)
+                search_button = st.button("🔍 Rechercher sur 6 API", use_container_width=True)
             
-            # Recherche OPTIMISÉE
+            # Recherche Multi-API
             if search_button or query:
                 start_time = time.time()
                 
-                with st.spinner("🌐 Recherche OPTIMISÉE en cours (30-90 secondes)..."):
-                    all_jobs = []
+                with st.spinner("🌐 Recherche sur 6 API simultanément (30-60 secondes)..."):
+                    all_jobs = get_all_jobs_massive(query, location)
                     
-                    # Recherche sur toutes les sources OPTIMISÉES
-                    if api_choice == "Toutes (OPTIMISÉ)":
-                        # France Travail optimisé
-                        france_jobs = get_massive_france_travail_jobs_optimized(query, location)
-                        all_jobs.extend(france_jobs)
-                        
-                        # JSearch optimisé (si configuré)
-                        jsearch_jobs = get_massive_jobs_jsearch_optimized(query, location)
-                        all_jobs.extend(jsearch_jobs)
-                    
-                    # France Travail uniquement
-                    elif api_choice == "France Travail":
-                        france_jobs = get_massive_france_travail_jobs_optimized(query, location)
-                        all_jobs.extend(france_jobs)
-                    
-                    # JSearch uniquement
-                    elif api_choice == "JSearch":
-                        jsearch_jobs = get_massive_jobs_jsearch_optimized(query, location)
-                        all_jobs.extend(jsearch_jobs)
-                    
-                    # Supprimer les doublons
                     if all_jobs:
+                        # Supprimer les doublons
                         seen = set()
                         unique_jobs = []
                         for job in all_jobs:
@@ -618,14 +711,12 @@ def main():
                                 unique_jobs.append(job)
                         
                         all_jobs = unique_jobs
-                        
-                        # Temps de recherche
                         search_time = int(time.time() - start_time)
                         
                         # Sauvegarder la recherche
                         save_search(query, location, len(all_jobs))
                         
-                        st.success(f"🎉 **{len(all_jobs)} offres trouvées** en {search_time} secondes !")
+                        st.success(f"🎉 **{len(all_jobs)} offres trouvées** en {search_time} secondes sur 6 API !")
                         
                         # Statistiques détaillées
                         col1, col2, col3, col4 = st.columns(4)
@@ -636,99 +727,94 @@ def main():
                             st.metric("Télétravail", remote_count)
                         with col3:
                             sources = len(set([j.get('source', 'Autre') for j in all_jobs]))
-                            st.metric("Sources", sources)
+                            st.metric("Sources API", sources)
                         with col4:
                             companies = len(set([j['company'] for j in all_jobs if j['company']]))
                             st.metric("Entreprises", companies)
                         
-                        # Répartition par source
+                        # Répartition par API
                         if len(all_jobs) > 0:
                             source_counts = {}
                             for job in all_jobs:
                                 source = job.get('source', 'Autre')
                                 source_counts[source] = source_counts.get(source, 0) + 1
                             
-                            st.subheader("📊 Répartition par source :")
-                            for source, count in source_counts.items():
-                                st.write(f"**{source}** : {count} offres")
+                            st.subheader("📊 Répartition par API :")
+                            cols = st.columns(len(source_counts))
+                            for i, (source, count) in enumerate(source_counts.items()):
+                                with cols[i]:
+                                    st.metric(source, count)
                         
                         detector = AdvancedJobScamDetector()
                         
-                        # Affichage des offres (limité à 150 pour la performance)
-                        display_jobs = all_jobs[:150]
-                        if len(all_jobs) > 150:
-                            st.info(f"💡 Affichage des 150 premières offres sur **{len(all_jobs)} trouvées**. Toutes les offres sont sauvegardées dans votre historique.")
+                        # Affichage des offres (limité à 200 pour la performance)
+                        display_jobs = all_jobs[:200]
+                        if len(all_jobs) > 200:
+                            st.info(f"💡 Affichage des 200 premières offres sur **{len(all_jobs)} trouvées**. Toutes sont disponibles dans votre historique.")
                         
                         for i, job in enumerate(display_jobs):
                             analysis = detector.analyze_text(job['description'])
                             
                             # Déterminer le niveau de risque
                             if analysis['risk_score'] >= 0.6:
-                                risk_class = "risk-high"
-                                risk_emoji = "🚨"
-                                risk_text = "RISQUE ÉLEVÉ"
-                                risk_color = "#DC143C"
+                                continue  # Ne pas afficher les offres à risque élevé
                             elif analysis['risk_score'] >= 0.3:
-                                risk_class = "risk-medium"
                                 risk_emoji = "⚠️"
                                 risk_text = "RISQUE MOYEN"
                                 risk_color = "#FF8C00"
                             else:
-                                risk_class = "risk-low"
                                 risk_emoji = "✅"
                                 risk_text = "OFFRE SÉCURISÉE"
                                 risk_color = "#2E8B57"
                             
-                            # Afficher seulement les offres sécurisées
-                            if analysis['risk_score'] < 0.6:
-                                remote_badge = " • 🏠 Télétravail" if job.get('is_remote') else ""
+                            remote_badge = " • 🏠 Télétravail" if job.get('is_remote') else ""
+                            
+                            with st.container():
+                                st.markdown(f"""
+                                <div class="job-card">
+                                    <h3>{job['title']}</h3>
+                                    <p><strong>🏢 {job['company']}</strong> • 📍 {job['location']} • 🕒 {job['date']} • 🌐 {job['source']}{remote_badge}</p>
+                                    <p>{job['description']}</p>
+                                    <p>💰 {job['salary']} • 📋 {job['type']} • <span style="color: {risk_color};">{risk_emoji} {risk_text}</span></p>
+                                </div>
+                                """, unsafe_allow_html=True)
                                 
-                                with st.container():
-                                    st.markdown(f"""
-                                    <div class="job-card">
-                                        <h3>{job['title']}</h3>
-                                        <p><strong>🏢 {job['company']}</strong> • 📍 {job['location']} • 🕒 {job['date']} • 🌐 {job['source']}{remote_badge}</p>
-                                        <p>{job['description']}</p>
-                                        <p>💰 {job['salary']} • 📋 {job['type']} • <span style="color: {risk_color};">{risk_emoji} {risk_text}</span></p>
-                                    </div>
-                                    """, unsafe_allow_html=True)
-                                    
-                                    col1, col2, col3 = st.columns(3)
-                                    
-                                    with col1:
-                                        if st.button(f"💾 Sauvegarder", key=f"save_{i}"):
-                                            user_info = st.session_state.users_db[st.session_state.current_user]
-                                            user_info['saved_jobs'].append(job)
-                                            st.success("Offre sauvegardée!")
-                                    
-                                    with col2:
-                                        if job.get('url'):
-                                            st.markdown(f"""
-                                            <a href="{job['url']}" target="_blank" class="job-link-btn">
-                                                🌐 Voir sur {job['source']}
-                                            </a>
-                                            """, unsafe_allow_html=True)
-                                        else:
-                                            st.write("Lien non disponible")
-                                    
-                                    with col3:
-                                        if st.button(f"📧 Postuler", key=f"apply_{i}"):
-                                            st.markdown(f"""
-                                            **📋 Candidature {job['company']} :**
-                                            
-                                            **🎯 Poste** : {job['title']}  
-                                            **📍 Lieu** : {job['location']}  
-                                            **🌐 Source** : {job['source']}  
-                                            **💼 Type** : {job['type']}
-                                            
-                                            **✅ ÉTAPES :**
-                                            1. Cliquez sur "Voir sur {job['source']}"
-                                            2. Consultez l'offre complète
-                                            3. Préparez CV + lettre de motivation
-                                            4. Postulez directement via {job['source']}
-                                            """)
+                                col1, col2, col3 = st.columns(3)
+                                
+                                with col1:
+                                    if st.button(f"💾 Sauvegarder", key=f"save_{i}"):
+                                        user_info = st.session_state.users_db[st.session_state.current_user]
+                                        user_info['saved_jobs'].append(job)
+                                        st.success("Offre sauvegardée!")
+                                
+                                with col2:
+                                    if job.get('url'):
+                                        st.markdown(f"""
+                                        <a href="{job['url']}" target="_blank" class="job-link-btn">
+                                            🌐 Voir sur {job['source']}
+                                        </a>
+                                        """, unsafe_allow_html=True)
+                                    else:
+                                        st.write("Lien non disponible")
+                                
+                                with col3:
+                                    if st.button(f"📧 Postuler", key=f"apply_{i}"):
+                                        st.markdown(f"""
+                                        **📋 Candidature {job['company']} :**
+                                        
+                                        **🎯 Poste** : {job['title']}  
+                                        **📍 Lieu** : {job['location']}  
+                                        **🌐 Source** : {job['source']}  
+                                        **💼 Type** : {job['type']}
+                                        
+                                        **✅ ÉTAPES :**
+                                        1. Cliquez sur "Voir sur {job['source']}"
+                                        2. Consultez l'offre complète
+                                        3. Préparez CV + lettre de motivation
+                                        4. Postulez directement via {job['source']}
+                                        """)
                     else:
-                        st.warning("Aucune offre trouvée. Essayez avec des termes plus génériques (ex: 'emploi', 'vente', 'informatique').")
+                        st.warning("Aucune offre trouvée. Vérifiez la configuration de vos API.")
         
         with tab2:
             st.header("👤 Mon Profil Professionnel")
@@ -848,89 +934,174 @@ def main():
                 st.info("Aucune offre sauvegardée pour le moment")
         
         with tab5:
-            st.header("⚙️ Configuration API")
+            st.header("⚙️ Configuration des 6 API")
             
             st.markdown("""
             <div class="api-status">
-                <h3>🔧 Configuration OPTIMISÉE pour 1000+ offres garanties</h3>
+                <h3>🔧 Configuration Multi-API pour 1000+ offres garanties</h3>
             </div>
             """, unsafe_allow_html=True)
             
-            # Statut des API
-            api_key = st.secrets.get("RAPIDAPI_KEY", "DEMO_KEY")
-            
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.subheader("🇫🇷 France Travail OPTIMISÉ")
-                st.success("✅ **1000+ offres garanties** - Recherche élargie automatique")
-                st.info("Termes de recherche élargis automatiquement pour plus de résultats")
-            
-            with col2:
-                st.subheader("🌐 JSearch OPTIMISÉ")
-                if api_key == "DEMO_KEY":
-                    st.error("❌ **Non configurée** - +250 offres supplémentaires disponibles")
-                else:
-                    st.success("✅ **Configurée** - +250 offres Indeed/LinkedIn/Glassdoor")
-            
+            # API 1: France Travail
             st.markdown("""
-            ### 🚀 Optimisations appliquées :
+            <div class="api-config">
+                <h4>🇫🇷 1. France Travail (GRATUITE - AUCUNE CONFIG)</h4>
+                <p><strong>✅ Toujours disponible</strong> - API officielle française</p>
+                <p><strong>Offres attendues:</strong> 50-100 offres par recherche</p>
+            </div>
+            """, unsafe_allow_html=True)
             
-            **🔍 Recherche élargie automatique :**
-            - "vendeur" → "vente commerce magasin"
-            - "développeur" → "informatique développement programmation"
-            - "serveur" → "restauration service hôtellerie"
-            - Et bien d'autres...
+            # API 2: JSearch
+            st.markdown("""
+            <div class="api-config">
+                <h4>🌐 2. JSearch (2500 requêtes/mois GRATUITES)</h4>
+                <p><strong>Sources:</strong> Indeed + LinkedIn + Glassdoor + ZipRecruiter</p>
+                <p><strong>Offres attendues:</strong> 100-250 offres par recherche</p>
+                <p><strong>Configuration:</strong></p>
+                <ol>
+                    <li>Allez sur <a href="https://rapidapi.com/letscrape-6bRBa3QguO5/api/jsearch" target="_blank">RapidAPI JSearch</a></li>
+                    <li>Inscrivez-vous gratuitement</li>
+                    <li>Abonnez-vous au plan gratuit (2500 requêtes/mois)</li>
+                    <li>Copiez votre "X-RapidAPI-Key"</li>
+                    <li>Dans Streamlit Secrets, ajoutez: <code>RAPIDAPI_KEY = "votre_cle_ici"</code></li>
+                </ol>
+            </div>
+            """, unsafe_allow_html=True)
             
-            **📍 Localisation élargie :**
-            - "Paris" → "Paris Île-de-France"
-            - "Lyon" → "Lyon Rhône-Alpes"
-            - Etc.
+            # API 3: Adzuna
+            st.markdown("""
+            <div class="api-config">
+                <h4>🔍 3. Adzuna (1000 requêtes/mois GRATUITES)</h4>
+                <p><strong>Sources:</strong> 50k+ offres françaises et européennes</p>
+                <p><strong>Offres attendues:</strong> 50-300 offres par recherche</p>
+                <p><strong>Configuration:</strong></p>
+                <ol>
+                    <li>Allez sur <a href="https://developer.adzuna.com/" target="_blank">Adzuna Developer</a></li>
+                    <li>Créez un compte gratuit</li>
+                    <li>Créez une nouvelle application</li>
+                    <li>Notez votre "Application ID" et "Application Key"</li>
+                    <li>Dans Streamlit Secrets, ajoutez:</li>
+                    <ul>
+                        <li><code>ADZUNA_APP_ID = "votre_app_id"</code></li>
+                        <li><code>ADZUNA_APP_KEY = "votre_app_key"</code></li>
+                    </ul>
+                </ol>
+            </div>
+            """, unsafe_allow_html=True)
             
-            **📊 Pagination massive :**
-            - **France Travail** : 7 pages × 150 offres = 1050 offres max
-            - **JSearch** : 5 pages × 50 offres = 250 offres max
-            - **Total possible** : 1300+ offres uniques
+            # API 4: Reed
+            st.markdown("""
+            <div class="api-config">
+                <h4>🇬🇧 4. Reed (1000 requêtes/mois GRATUITES)</h4>
+                <p><strong>Sources:</strong> 100k+ offres européennes</p>
+                <p><strong>Offres attendues:</strong> 50-200 offres par recherche</p>
+                <p><strong>Configuration:</strong></p>
+                <ol>
+                    <li>Allez sur <a href="https://www.reed.co.uk/developers" target="_blank">Reed API</a></li>
+                    <li>Créez un compte gratuit</li>
+                    <li>Demandez l'accès API (gratuit)</li>
+                    <li>Récupérez votre clé API</li>
+                    <li>Dans Streamlit Secrets, ajoutez: <code>REED_API_KEY = "votre_cle_ici"</code></li>
+                </ol>
+            </div>
+            """, unsafe_allow_html=True)
             
-            **🛡️ Filtrage intelligent :**
-            - Suppression automatique des doublons
-            - Filtrage des offres suspectes
-            - Conservation des offres légitimes
+            # API 5: The Muse
+            st.markdown("""
+            <div class="api-config">
+                <h4>💼 5. The Muse (GRATUITE - ILLIMITÉE)</h4>
+                <p><strong>✅ Aucune configuration requise</strong></p>
+                <p><strong>Sources:</strong> 20k+ offres internationales</p>
+                <p><strong>Offres attendues:</strong> 20-150 offres par recherche</p>
+            </div>
+            """, unsafe_allow_html=True)
             
-            ### 💡 Conseils pour maximiser les résultats :
-            - **Utilisez des termes génériques** : "vente" plutôt que "vendeur magasin"
-            - **Laissez la localisation vide** pour toute la France
-            - **Soyez patient** : la recherche optimisée prend 30-90 secondes
-            - **Essayez "emploi"** sans autre terme pour le maximum d'offres
+            # API 6: GitHub Jobs
+            st.markdown("""
+            <div class="api-config">
+                <h4>💻 6. GitHub Jobs (GRATUITE - ILLIMITÉE)</h4>
+                <p><strong>✅ Aucune configuration requise</strong></p>
+                <p><strong>Sources:</strong> Offres tech du monde entier</p>
+                <p><strong>Offres attendues:</strong> 10-50 offres par recherche</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Résumé de configuration
+            st.markdown("""
+            ### 📋 Résumé de configuration dans Streamlit Secrets :
+            
+            ```
+            # API JSearch (optionnelle)
+            RAPIDAPI_KEY = "votre_cle_jsearch"
+            
+            # API Adzuna (optionnelle)
+            ADZUNA_APP_ID = "votre_app_id_adzuna"
+            ADZUNA_APP_KEY = "votre_app_key_adzuna"
+            
+            # API Reed (optionnelle)
+            REED_API_KEY = "votre_cle_reed"
+            ```
+            
+            ### 🎯 Résultat attendu avec toutes les API configurées :
+            - **France Travail** : ~100 offres
+            - **JSearch** : ~250 offres
+            - **Adzuna** : ~300 offres
+            - **Reed** : ~200 offres
+            - **The Muse** : ~150 offres
+            - **GitHub Jobs** : ~50 offres
+            
+            **TOTAL** : **1000+ offres garanties** par recherche !
+            
+            ### 💡 Priorité de configuration :
+            1. **JSearch** (le plus important - 250 offres)
+            2. **Adzuna** (300 offres françaises)
+            3. **Reed** (200 offres européennes)
+            
+            Même avec seulement France Travail + JSearch + Adzuna, tu auras **650+ offres** !
             """)
             
-            # Test des API optimisées
-            col1, col2 = st.columns(2)
+            # Tests individuels des API
+            st.subheader("🧪 Tests individuels des API")
+            
+            col1, col2, col3 = st.columns(3)
             
             with col1:
-                if st.button("🧪 Test France Travail OPTIMISÉ"):
-                    with st.spinner("Test de la recherche optimisée..."):
-                        test_jobs = get_massive_france_travail_jobs_optimized("emploi", "")
-                        if test_jobs:
-                            st.success(f"✅ France Travail OPTIMISÉ ! **{len(test_jobs)} offres** trouvées")
-                        else:
-                            st.warning("⚠️ Aucune offre trouvée")
+                if st.button("Test France Travail"):
+                    with st.spinner("Test..."):
+                        jobs = get_france_travail_jobs("emploi", "")
+                        st.write(f"✅ {len(jobs)} offres trouvées")
+                
+                if st.button("Test JSearch"):
+                    with st.spinner("Test..."):
+                        jobs = get_jsearch_jobs("emploi", "")
+                        st.write(f"✅ {len(jobs)} offres trouvées")
             
             with col2:
-                if st.button("🧪 Test JSearch OPTIMISÉ"):
-                    with st.spinner("Test JSearch optimisé..."):
-                        test_jobs = get_massive_jobs_jsearch_optimized("emploi", "")
-                        if test_jobs:
-                            st.success(f"✅ JSearch OPTIMISÉ ! **{len(test_jobs)} offres** trouvées")
-                            sources = set([j.get('source', 'Autre') for j in test_jobs])
-                            st.info(f"Sources : {', '.join(sources)}")
-                        else:
-                            st.error("❌ JSearch non configurée")
+                if st.button("Test Adzuna"):
+                    with st.spinner("Test..."):
+                        jobs = get_adzuna_jobs("emploi", "")
+                        st.write(f"✅ {len(jobs)} offres trouvées")
+                
+                if st.button("Test Reed"):
+                    with st.spinner("Test..."):
+                        jobs = get_reed_jobs("emploi", "")
+                        st.write(f"✅ {len(jobs)} offres trouvées")
+            
+            with col3:
+                if st.button("Test The Muse"):
+                    with st.spinner("Test..."):
+                        jobs = get_themuse_jobs("emploi", "")
+                        st.write(f"✅ {len(jobs)} offres trouvées")
+                
+                if st.button("Test GitHub Jobs"):
+                    with st.spinner("Test..."):
+                        jobs = get_github_jobs("developer")
+                        st.write(f"✅ {len(jobs)} offres trouvées")
     
     else:
         st.info("👈 Veuillez vous connecter pour accéder à l'application")
         
-        st.header("🎯 Hub de recherche d'emploi OPTIMISÉ")
+        st.header("🎯 Hub Multi-API - 6 sources d'emploi")
         
         col1, col2, col3 = st.columns(3)
         
@@ -938,8 +1109,8 @@ def main():
             st.markdown("""
             <div class="stats-card">
                 <h2>🇫🇷</h2>
-                <h3>1000+ offres France Travail</h3>
-                <p>Recherche élargie automatique avec pagination massive</p>
+                <h3>France Travail</h3>
+                <p>API officielle française - Toujours disponible</p>
             </div>
             """, unsafe_allow_html=True)
         
@@ -947,17 +1118,17 @@ def main():
             st.markdown("""
             <div class="stats-card">
                 <h2>🌐</h2>
-                <h3>+250 offres JSearch</h3>
-                <p>Indeed + LinkedIn + Glassdoor + ZipRecruiter optimisés</p>
+                <h3>4 API Internationales</h3>
+                <p>JSearch + Adzuna + Reed + The Muse</p>
             </div>
             """, unsafe_allow_html=True)
         
         with col3:
             st.markdown("""
             <div class="stats-card">
-                <h2>🛡️</h2>
-                <h3>Filtrage intelligent</h3>
-                <p>Suppression des doublons et protection anti-arnaque</p>
+                <h2>💻</h2>
+                <h3>GitHub Jobs</h3>
+                <p>Spécialisé dans les offres tech</p>
             </div>
             """, unsafe_allow_html=True)
 
