@@ -117,53 +117,54 @@ class AdvancedJobScamDetector:
 # Fonction pour récupérer de vraies offres d'emploi via API
 def get_real_job_offers(search_term="", location="", page=1):
     """Récupère de vraies offres d'emploi via l'API Adzuna (gratuite)"""
-    try:
-        # API Adzuna (gratuite, 1000 requêtes/mois)
-        app_key = app_id = st.secrets.get("ADZUNA_APP_ID", "your_app_id")
-app_key = st.secrets.get("ADZUNA_APP_KEY", "your_app_key")
-  
-        
-        # URL de l'API Adzuna pour la France
-        base_url = "https://api.adzuna.com/v1/api/jobs/fr/search"
-        
-        params = {
-            'app_id': app_id,
-            'app_key': app_key,
-            'results_per_page': 20,
-            'page': page,
-            'what': search_term,
-            'where': location,
-            'sort_by': 'date'
-        }
-        
-        # Si pas de clés API, utiliser des données de démonstration réalistes
-        if app_id == "your_app_id":
-            return get_demo_real_jobs(search_term, location)
-        
-        response = requests.get(base_url, params=params, timeout=10)
-        
-        if response.status_code == 200:
-            data = response.json()
-            jobs = []
-            
-            for job in data.get('results', []):
-                jobs.append({
-                    'title': job.get('title', ''),
-                    'company': job.get('company', {}).get('display_name', 'Entreprise non spécifiée'),
-                    'location': job.get('location', {}).get('display_name', location),
-                    'description': job.get('description', '')[:500] + '...',
-                    'url': job.get('redirect_url', ''),
-                    'posted': job.get('created', ''),
-                    'salary': job.get('salary_min', 0)
-                })
-            
-            return jobs
-        else:
-            return get_demo_real_jobs(search_term, location)
-            
-    except Exception as e:
-        st.error(f"Erreur lors de la récupération des offres: {str(e)}")
+    
+       try:
+    # API Adzuna (gratuite, 1000 requêtes/mois)
+    app_id = st.secrets.get("ADZUNA_APP_ID", "your_app_id")
+    app_key = st.secrets.get("ADZUNA_APP_KEY", "your_app_key")
+    
+    # URL de l'API Adzuna pour la France
+    base_url = "https://api.adzuna.com/v1/api/jobs/fr/search"
+    
+    params = {
+        'app_id': app_id,
+        'app_key': app_key,
+        'results_per_page': 20,
+        'page': page,
+        'what': search_term,
+        'where': location,
+        'sort_by': 'date'
+    }
+    
+    # Si pas de clés API, utiliser des données de démonstration réalistes
+    if app_id == "your_app_id":
         return get_demo_real_jobs(search_term, location)
+    
+    response = requests.get(base_url, params=params, timeout=10)
+    
+    if response.status_code == 200:
+        data = response.json()
+        jobs = []
+        
+        for job in data.get('results', []):
+            jobs.append({
+                'title': job.get('title', ''),
+                'company': job.get('company', {}).get('display_name', 'Entreprise non spécifiée'),
+                'location': job.get('location', {}).get('display_name', location),
+                'description': job.get('description', '')[:500] + '...',
+                'url': job.get('redirect_url', ''),
+                'posted': job.get('created', ''),
+                'salary': job.get('salary_min', 0)
+            })
+        
+        return jobs
+    else:
+        return get_demo_real_jobs(search_term, location)
+        
+except Exception as e:
+    st.error(f"Erreur lors de la récupération des offres: {str(e)}")
+    return get_demo_real_jobs(search_term, location)
+
 
 def get_demo_real_jobs(search_term="", location=""):
     """Données de démonstration basées sur de vraies entreprises françaises"""
