@@ -156,28 +156,51 @@ def get_real_jobs_jsearch(query="", location="", page=1):
             
             for job in data.get('data', []):
                 # Nettoyer et formater les données
-                description = job.get('job_description', '')
+                description = job.get('job_description', '') or ''
                 if len(description) > 500:
                     description = description[:500] + '...'
                 
                 # Déterminer la source
                 source = "Indeed"
-                if "linkedin" in job.get('job_apply_link', '').lower():
+                apply_link = job.get('job_apply_link', '') or ''
+                if "linkedin" in apply_link.lower():
                     source = "LinkedIn"
-                elif "glassdoor" in job.get('job_apply_link', '').lower():
+                elif "glassdoor" in apply_link.lower():
                     source = "Glassdoor"
-                elif "ziprecruiter" in job.get('job_apply_link', '').lower():
+                elif "ziprecruiter" in apply_link.lower():
                     source = "ZipRecruiter"
                 
+                # Construction sécurisée de la localisation
+                city = job.get('job_city', '') or ''
+                country = job.get('job_country', '') or ''
+                location_str = city
+                if city and country:
+                    location_str = f"{city}, {country}"
+                elif country:
+                    location_str = country
+                elif not location_str:
+                    location_str = location or "Non spécifié"
+                
+                # Construction sécurisée du salaire
+                salary_str = "Salaire non spécifié"
+                if job.get('job_min_salary'):
+                    currency = job.get('job_salary_currency', '') or ''
+                    min_sal = str(job.get('job_min_salary', ''))
+                    max_sal = str(job.get('job_max_salary', ''))
+                    if max_sal and max_sal != 'None':
+                        salary_str = f"{currency} {min_sal}-{max_sal}"
+                    else:
+                        salary_str = f"{currency} {min_sal}+"
+                
                 jobs.append({
-                    'title': job.get('job_title', 'Titre non disponible'),
-                    'company': job.get('employer_name', 'Entreprise non spécifiée'),
-                    'location': job.get('job_city', '') + ', ' + job.get('job_country', ''),
+                    'title': job.get('job_title', '') or 'Titre non disponible',
+                    'company': job.get('employer_name', '') or 'Entreprise non spécifiée',
+                    'location': location_str,
                     'description': description,
-                    'url': job.get('job_apply_link', ''),
-                    'date': job.get('job_posted_at_datetime_utc', 'Date non spécifiée'),
-                    'salary': job.get('job_salary_currency', '') + ' ' + str(job.get('job_min_salary', '')) + '-' + str(job.get('job_max_salary', '')) if job.get('job_min_salary') else 'Salaire non spécifié',
-                    'type': job.get('job_employment_type', 'CDI'),
+                    'url': apply_link,
+                    'date': job.get('job_posted_at_datetime_utc', '') or 'Date non spécifiée',
+                    'salary': salary_str,
+                    'type': job.get('job_employment_type', '') or 'CDI',
                     'source': source,
                     'is_remote': job.get('job_is_remote', False)
                 })
@@ -199,7 +222,7 @@ def get_real_jobs_jsearch(query="", location="", page=1):
         st.error(f"Erreur de connexion: {str(e)}")
         return []
 
-# Fonction API France Travail OFFICIELLE (GRATUITE - AUCUNE CONFIG REQUISE)
+# Fonction API France Travail OFFICIELLE (GRATUITE - AUCUNE CONFIG REQUISE) - CORRIGÉE
 def get_france_travail_jobs(query="", location=""):
     """API officielle France Travail avec vraies offres françaises - GRATUITE"""
     
@@ -209,11 +232,13 @@ def get_france_travail_jobs(query="", location=""):
         "Accept": "application/json"
     }
     
-    params = {
-        "motsCles": query or "",
-        "commune": location or "",
-        "range": "0-99"  # 100 offres max par requête
-    }
+    # Construction sécurisée des paramètres
+    params = {}
+    if query and query.strip():
+        params["motsCles"] = query.strip()
+    if location and location.strip():
+        params["commune"] = location.strip()
+    params["range"] = "0-99"  # 100 offres max par requête
     
     try:
         response = requests.get(url, headers=headers, params=params, timeout=15)
@@ -224,24 +249,37 @@ def get_france_travail_jobs(query="", location=""):
             
             for job in data.get('resultats', []):
                 # Nettoyer la description
-                description = job.get('description', '')
+                description = job.get('description', '') or ''
                 if len(description) > 500:
                     description = description[:500] + '...'
                 
-                # Construire l'URL de l'offre
+                # Construire l'URL de l'offre de façon sécurisée
                 job_url = ""
-                if job.get('origineOffre', {}).get('urlOrigine'):
-                    job_url = job['origineOffre']['urlOrigine']
+                origine_offre = job.get('origineOffre', {}) or {}
+                if origine_offre.get('urlOrigine'):
+                    job_url = origine_offre['urlOrigine']
+                
+                # Construction sécurisée des informations entreprise
+                entreprise = job.get('entreprise', {}) or {}
+                company_name = entreprise.get('nom', '') or 'Entreprise non spécifiée'
+                
+                # Construction sécurisée du lieu de travail
+                lieu_travail = job.get('lieuTravail', {}) or {}
+                location_str = lieu_travail.get('libelle', '') or location or 'France'
+                
+                # Construction sécurisée du salaire
+                salaire = job.get('salaire', {}) or {}
+                salary_str = salaire.get('libelle', '') or 'Salaire non spécifié'
                 
                 jobs.append({
-                    'title': job.get('intitule', 'Titre non disponible'),
-                    'company': job.get('entreprise', {}).get('nom', 'Entreprise non spécifiée'),
-                    'location': job.get('lieuTravail', {}).get('libelle', location or 'France'),
+                    'title': job.get('intitule', '') or 'Titre non disponible',
+                    'company': company_name,
+                    'location': location_str,
                     'description': description,
                     'url': job_url,
-                    'date': job.get('dateCreation', 'Date non spécifiée'),
-                    'salary': job.get('salaire', {}).get('libelle', 'Salaire non spécifié'),
-                    'type': job.get('typeContrat', 'CDI'),
+                    'date': job.get('dateCreation', '') or 'Date non spécifiée',
+                    'salary': salary_str,
+                    'type': job.get('typeContrat', '') or 'CDI',
                     'source': 'France Travail',
                     'is_remote': 'télétravail' in description.lower() or 'remote' in description.lower()
                 })
@@ -279,14 +317,18 @@ def get_indeed_jobs_backup(query="", location=""):
             jobs = []
             
             for job in data.get('hits', []):
+                description = job.get('description', '') or ''
+                if len(description) > 500:
+                    description = description[:500] + '...'
+                
                 jobs.append({
-                    'title': job.get('title', ''),
-                    'company': job.get('company', ''),
-                    'location': job.get('location', ''),
-                    'description': job.get('description', '')[:500] + '...',
-                    'url': job.get('url', ''),
-                    'date': job.get('date', ''),
-                    'salary': job.get('salary', 'Non spécifié'),
+                    'title': job.get('title', '') or 'Titre non disponible',
+                    'company': job.get('company', '') or 'Entreprise non spécifiée',
+                    'location': job.get('location', '') or location or 'France',
+                    'description': description,
+                    'url': job.get('url', '') or '',
+                    'date': job.get('date', '') or 'Date non spécifiée',
+                    'salary': job.get('salary', '') or 'Non spécifié',
                     'type': 'CDI',
                     'source': 'Indeed',
                     'is_remote': False
@@ -770,16 +812,16 @@ def main():
             with col1:
                 if st.button("🧪 Tester France Travail"):
                     with st.spinner("Test en cours..."):
-                        test_jobs = get_france_travail_jobs("test", "Paris")
+                        test_jobs = get_france_travail_jobs("emploi", "Paris")
                         if test_jobs:
                             st.success(f"✅ France Travail fonctionnelle ! {len(test_jobs)} offres trouvées")
                         else:
-                            st.warning("⚠️ Aucune offre trouvée pour 'test' à 'Paris'")
+                            st.warning("⚠️ Aucune offre trouvée pour 'emploi' à 'Paris'")
             
             with col2:
                 if st.button("🧪 Tester JSearch"):
                     with st.spinner("Test en cours..."):
-                        test_jobs = get_real_jobs_jsearch("test", "France")
+                        test_jobs = get_real_jobs_jsearch("emploi", "France")
                         if test_jobs:
                             st.success(f"✅ JSearch fonctionnelle ! {len(test_jobs)} offres trouvées")
                             st.info(f"Sources : {', '.join(set([j.get('source', 'Autre') for j in test_jobs]))}")
