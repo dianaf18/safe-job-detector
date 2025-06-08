@@ -118,7 +118,7 @@ class AdvancedJobScamDetector:
 def get_real_job_offers(search_term="", location="", page=1):
     """Récupère de vraies offres d'emploi via l'API Adzuna (gratuite)"""
     
-       try:
+    try:
     # API Adzuna (gratuite, 1000 requêtes/mois)
     app_id = st.secrets.get("ADZUNA_APP_ID", "your_app_id")
     app_key = st.secrets.get("ADZUNA_APP_KEY", "your_app_key")
