@@ -60,6 +60,20 @@ st.markdown("""
         text-align: center;
         margin: 0.5rem;
     }
+    .job-link-btn {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        background-color: #2E8B57;
+        color: white !important;
+        text-decoration: none;
+        border-radius: 5px;
+        font-weight: bold;
+        margin: 0.2rem;
+    }
+    .job-link-btn:hover {
+        background-color: #236B47;
+        color: white !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -380,17 +394,42 @@ def main():
                                     """, unsafe_allow_html=True)
                                     
                                     col1, col2, col3 = st.columns(3)
+                                    
                                     with col1:
                                         if st.button(f"💾 Sauvegarder", key=f"save_{i}"):
                                             user_info = st.session_state.users_db[st.session_state.current_user]
                                             user_info['saved_jobs'].append(job)
                                             st.success("Offre sauvegardée!")
+                                    
                                     with col2:
                                         if job['url']:
-                                            st.link_button("🔗 Voir l'offre", job['url'])
+                                            st.markdown(f"""
+                                            <a href="{job['url']}" target="_blank" class="job-link-btn">
+                                                🔗 Voir l'offre
+                                            </a>
+                                            """, unsafe_allow_html=True)
+                                        else:
+                                            st.write("Lien non disponible")
+                                    
                                     with col3:
                                         if st.button(f"📧 Postuler", key=f"apply_{i}"):
-                                            st.info("Fonctionnalité de candidature en développement")
+                                            st.markdown(f"""
+                                            **📋 Pour postuler à ce poste :**
+                                            
+                                            1. **Cliquez sur "Voir l'offre"** pour accéder au site de {job['company']}
+                                            2. **Préparez vos documents** : CV, lettre de motivation
+                                            3. **Suivez les instructions** sur leur site officiel
+                                            4. **Envoyez votre candidature** directement à l'entreprise
+                                            
+                                            💡 **Conseil** : Personnalisez votre lettre de motivation pour ce poste !
+                                            """)
+                                            
+                                            if job['url']:
+                                                st.markdown(f"""
+                                                <a href="{job['url']}" target="_blank" class="job-link-btn">
+                                                    🚀 Accéder au site de {job['company']}
+                                                </a>
+                                                """, unsafe_allow_html=True)
                     else:
                         st.info("Aucune offre trouvée pour cette recherche")
         
@@ -486,10 +525,21 @@ def main():
                 for i, job in enumerate(user_info['saved_jobs']):
                     with st.expander(f"{job['title']} - {job['company']}"):
                         st.write(f"**Localisation:** {job['location']}")
+                        st.write(f"**Salaire:** {job.get('salary', 'Non spécifié')}€/mois")
                         st.write(f"**Description:** {job['description']}")
-                        if st.button(f"Supprimer", key=f"delete_{i}"):
-                            user_info['saved_jobs'].pop(i)
-                            st.rerun()
+                        
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            if job['url']:
+                                st.markdown(f"""
+                                <a href="{job['url']}" target="_blank" class="job-link-btn">
+                                    🔗 Voir l'offre complète
+                                </a>
+                                """, unsafe_allow_html=True)
+                        with col2:
+                            if st.button(f"🗑️ Supprimer", key=f"delete_{i}"):
+                                user_info['saved_jobs'].pop(i)
+                                st.rerun()
             else:
                 st.info("Aucune offre sauvegardée pour le moment")
     
