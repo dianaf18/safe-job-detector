@@ -121,84 +121,29 @@ class AdvancedJobScamDetector:
         
         return results
 
-# Fonction API Indeed RÉELLE
-def get_real_indeed_jobs(query="", location="", page=1):
-    """Récupère de VRAIES offres Indeed via RapidAPI"""
+# Fonction API JSearch RÉELLE (Multi-sources : Indeed + LinkedIn + Glassdoor + ZipRecruiter)
+def get_real_jobs_jsearch(query="", location="", page=1):
+    """Récupère de VRAIES offres via JSearch API (Indeed + LinkedIn + Glassdoor + ZipRecruiter)"""
     
-    # Configuration API RapidAPI Indeed
-    url = "https://indeed12.p.rapidapi.com/jobs/search"
-    
-    headers = {
-        "X-RapidAPI-Key": st.secrets.get("RAPIDAPI_KEY", "DEMO_KEY"),
-        "X-RapidAPI-Host": "indeed12.p.rapidapi.com"
-    }
-    
-    params = {
-        "query": query or "emploi",
-        "location": location or "France",
-        "page_id": str(page),
-        "locality": "fr",
-        "fromage": "7"  # Offres des 7 derniers jours
-    }
-    
-    try:
-        response = requests.get(url, headers=headers, params=params, timeout=15)
-        
-        if response.status_code == 200:
-            data = response.json()
-            jobs = []
-            
-            for job in data.get('hits', []):
-                # Nettoyer et formater les données
-                description = job.get('description', '')
-                if len(description) > 500:
-                    description = description[:500] + '...'
-                
-                jobs.append({
-                    'title': job.get('title', 'Titre non disponible'),
-                    'company': job.get('company', 'Entreprise non spécifiée'),
-                    'location': job.get('location', location or 'France'),
-                    'description': description,
-                    'url': job.get('url', ''),
-                    'date': job.get('date', 'Date non spécifiée'),
-                    'salary': job.get('salary', 'Salaire non spécifié'),
-                    'type': job.get('type', 'CDI'),
-                    'source': 'Indeed'
-                })
-            
-            return jobs
-        
-        elif response.status_code == 429:
-            st.warning("⚠️ Limite API atteinte. Réessayez dans quelques minutes.")
-            return []
-        
-        else:
-            st.error(f"Erreur API Indeed (Code: {response.status_code})")
-            return []
-            
-    except requests.exceptions.Timeout:
-        st.error("⏱️ Timeout API - Réessayez")
-        return []
-    except Exception as e:
-        st.error(f"Erreur de connexion: {str(e)}")
-        return []
-
-# Fonction API LinkedIn (alternative)
-def get_linkedin_jobs(query="", location=""):
-    """Récupère des offres LinkedIn via RapidAPI (alternative)"""
-    
-    url = "https://linkedin-data-api.p.rapidapi.com/search-jobs"
+    # Configuration API JSearch (Multi-sources)
+    url = "https://jsearch.p.rapidapi.com/search"
     
     headers = {
         "X-RapidAPI-Key": st.secrets.get("RAPIDAPI_KEY", "DEMO_KEY"),
-        "X-RapidAPI-Host": "linkedin-data-api.p.rapidapi.com"
+        "X-RapidAPI-Host": "jsearch.p.rapidapi.com"
     }
     
+    # Construction de la requête
+    search_query = query or "emploi"
+    if location:
+        search_query += f" in {location}"
+    
     params = {
-        "keywords": query or "emploi",
-        "locationId": "105015875",  # France
-        "datePosted": "pastWeek",
-        "sort": "mostRelevant"
+        "query": search_query,
+        "page": str(page),
+        "num_pages": "1",
+        "country": "fr",
+        "date_posted": "week"
     }
     
     try:
@@ -209,16 +154,87 @@ def get_linkedin_jobs(query="", location=""):
             jobs = []
             
             for job in data.get('data', []):
+                # Nettoyer et formater les données
+                description = job.get('job_description', '')
+                if len(description) > 500:
+                    description = description[:500] + '...'
+                
+                # Déterminer la source
+                source = "Indeed"
+                if "linkedin" in job.get('job_apply_link', '').lower():
+                    source = "LinkedIn"
+                elif "glassdoor" in job.get('job_apply_link', '').lower():
+                    source = "Glassdoor"
+                elif "ziprecruiter" in job.get('job_apply_link', '').lower():
+                    source = "ZipRecruiter"
+                
+                jobs.append({
+                    'title': job.get('job_title', 'Titre non disponible'),
+                    'company': job.get('employer_name', 'Entreprise non spécifiée'),
+                    'location': job.get('job_city', '') + ', ' + job.get('job_country', ''),
+                    'description': description,
+                    'url': job.get('job_apply_link', ''),
+                    'date': job.get('job_posted_at_datetime_utc', 'Date non spécifiée'),
+                    'salary': job.get('job_salary_currency', '') + ' ' + str(job.get('job_min_salary', '')) + '-' + str(job.get('job_max_salary', '')) if job.get('job_min_salary') else 'Salaire non spécifié',
+                    'type': job.get('job_employment_type', 'CDI'),
+                    'source': source,
+                    'is_remote': job.get('job_is_remote', False)
+                })
+            
+            return jobs
+        
+        elif response.status_code == 429:
+            st.warning("⚠️ Limite API atteinte. Réessayez dans quelques minutes.")
+            return []
+        
+        else:
+            st.error(f"Erreur API JSearch (Code: {response.status_code})")
+            return []
+            
+    except requests.exceptions.Timeout:
+        st.error("⏱️ Timeout API - Réessayez")
+        return []
+    except Exception as e:
+        st.error(f"Erreur de connexion: {str(e)}")
+        return []
+
+# Fonction API Indeed (backup)
+def get_indeed_jobs_backup(query="", location=""):
+    """API Indeed de backup si JSearch ne fonctionne pas"""
+    
+    url = "https://indeed12.p.rapidapi.com/jobs/search"
+    
+    headers = {
+        "X-RapidAPI-Key": st.secrets.get("RAPIDAPI_KEY", "DEMO_KEY"),
+        "X-RapidAPI-Host": "indeed12.p.rapidapi.com"
+    }
+    
+    params = {
+        "query": query or "emploi",
+        "location": location or "France",
+        "page_id": "1",
+        "locality": "fr"
+    }
+    
+    try:
+        response = requests.get(url, headers=headers, params=params, timeout=15)
+        
+        if response.status_code == 200:
+            data = response.json()
+            jobs = []
+            
+            for job in data.get('hits', []):
                 jobs.append({
                     'title': job.get('title', ''),
-                    'company': job.get('company', {}).get('name', ''),
+                    'company': job.get('company', ''),
                     'location': job.get('location', ''),
                     'description': job.get('description', '')[:500] + '...',
                     'url': job.get('url', ''),
-                    'date': job.get('postedAt', ''),
-                    'salary': 'Voir sur LinkedIn',
+                    'date': job.get('date', ''),
+                    'salary': job.get('salary', 'Non spécifié'),
                     'type': 'CDI',
-                    'source': 'LinkedIn'
+                    'source': 'Indeed',
+                    'is_remote': False
                 })
             
             return jobs
@@ -349,7 +365,7 @@ def main():
             if api_key == "DEMO_KEY":
                 st.warning("⚠️ API non configurée")
             else:
-                st.success("✅ API configurée")
+                st.success("✅ API JSearch configurée")
             
             if st.button("Se déconnecter"):
                 logout_user()
@@ -367,7 +383,7 @@ def main():
         ])
         
         with tab1:
-            st.header("🎯 Recherche d'emploi - Hub centralisé")
+            st.header("🎯 Recherche d'emploi - Hub centralisé multi-sources")
             
             # Barre de recherche améliorée
             col1, col2, col3, col4 = st.columns([3, 2, 1, 1])
@@ -379,7 +395,7 @@ def main():
                 location = st.text_input("📍 Localisation", placeholder="Ex: Paris, Lyon...")
             
             with col3:
-                source = st.selectbox("Source", ["Indeed", "LinkedIn", "Toutes"])
+                api_choice = st.selectbox("API", ["JSearch", "Indeed"])
             
             with col4:
                 st.write("")
@@ -388,18 +404,24 @@ def main():
             
             # Recherche avec vraies API
             if search_button or query:
-                with st.spinner("🌐 Recherche sur Internet..."):
+                with st.spinner("🌐 Recherche sur Internet (Indeed + LinkedIn + Glassdoor + ZipRecruiter)..."):
                     all_jobs = []
                     
-                    # Recherche Indeed
-                    if source in ["Indeed", "Toutes"]:
-                        indeed_jobs = get_real_indeed_jobs(query, location)
-                        all_jobs.extend(indeed_jobs)
+                    # Recherche JSearch (multi-sources)
+                    if api_choice == "JSearch":
+                        jsearch_jobs = get_real_jobs_jsearch(query, location)
+                        all_jobs.extend(jsearch_jobs)
+                        
+                        # Si JSearch ne fonctionne pas, utiliser Indeed en backup
+                        if not jsearch_jobs:
+                            st.info("🔄 JSearch indisponible, utilisation d'Indeed en backup...")
+                            indeed_jobs = get_indeed_jobs_backup(query, location)
+                            all_jobs.extend(indeed_jobs)
                     
-                    # Recherche LinkedIn
-                    if source in ["LinkedIn", "Toutes"]:
-                        linkedin_jobs = get_linkedin_jobs(query, location)
-                        all_jobs.extend(linkedin_jobs)
+                    # Recherche Indeed directe
+                    elif api_choice == "Indeed":
+                        indeed_jobs = get_indeed_jobs_backup(query, location)
+                        all_jobs.extend(indeed_jobs)
                     
                     if all_jobs:
                         # Sauvegarder la recherche
@@ -412,11 +434,11 @@ def main():
                         with col1:
                             st.metric("Offres trouvées", len(all_jobs))
                         with col2:
-                            indeed_count = len([j for j in all_jobs if j.get('source') == 'Indeed'])
-                            st.metric("Indeed", indeed_count)
+                            remote_count = len([j for j in all_jobs if j.get('is_remote')])
+                            st.metric("Télétravail", remote_count)
                         with col3:
-                            linkedin_count = len([j for j in all_jobs if j.get('source') == 'LinkedIn'])
-                            st.metric("LinkedIn", linkedin_count)
+                            sources = len(set([j.get('source', 'Autre') for j in all_jobs]))
+                            st.metric("Sources", sources)
                         with col4:
                             companies = len(set([j['company'] for j in all_jobs if j['company']]))
                             st.metric("Entreprises", companies)
@@ -446,13 +468,15 @@ def main():
                             
                             # Afficher seulement les offres sécurisées
                             if analysis['risk_score'] < 0.6:
+                                remote_badge = " • 🏠 Télétravail" if job.get('is_remote') else ""
+                                
                                 with st.container():
                                     st.markdown(f"""
                                     <div class="job-card">
                                         <h3>{job['title']}</h3>
-                                        <p><strong>🏢 {job['company']}</strong> • 📍 {job['location']} • 🕒 {job['date']} • 🌐 {job['source']}</p>
+                                        <p><strong>🏢 {job['company']}</strong> • 📍 {job['location']} • 🕒 {job['date']} • 🌐 {job['source']}{remote_badge}</p>
                                         <p>{job['description']}</p>
-                                        <p>💰 {job['salary']} • <span style="color: {risk_color};">{risk_emoji} {risk_text}</span></p>
+                                        <p>💰 {job['salary']} • 📋 {job['type']} • <span style="color: {risk_color};">{risk_emoji} {risk_text}</span></p>
                                     </div>
                                     """, unsafe_allow_html=True)
                                     
@@ -479,7 +503,8 @@ def main():
                                             
                                             **🎯 Poste** : {job['title']}  
                                             **📍 Lieu** : {job['location']}  
-                                            **🌐 Source** : {job['source']}
+                                            **🌐 Source** : {job['source']}  
+                                            **💼 Type** : {job['type']}
                                             
                                             **✅ ÉTAPES :**
                                             1. Cliquez sur "Voir sur {job['source']}"
@@ -581,11 +606,15 @@ def main():
             if user_info.get('saved_jobs'):
                 st.subheader(f"💾 Offres sauvegardées ({len(user_info['saved_jobs'])})")
                 for i, job in enumerate(user_info['saved_jobs']):
-                    with st.expander(f"{job['title']} - {job['company']} ({job.get('source', 'Internet')})"):
+                    remote_badge = " (Télétravail)" if job.get('is_remote') else ""
+                    with st.expander(f"{job['title']} - {job['company']} ({job.get('source', 'Internet')}){remote_badge}"):
                         st.write(f"**Localisation:** {job['location']}")
                         st.write(f"**Salaire:** {job.get('salary', 'Non spécifié')}")
+                        st.write(f"**Type:** {job.get('type', 'CDI')}")
                         st.write(f"**Date:** {job.get('date', 'Non spécifiée')}")
                         st.write(f"**Source:** {job.get('source', 'Internet')}")
+                        if job.get('is_remote'):
+                            st.write("**🏠 Télétravail possible**")
                         st.write(f"**Description:** {job['description']}")
                         
                         col1, col2 = st.columns(2)
@@ -608,7 +637,7 @@ def main():
             
             st.markdown("""
             <div class="api-status">
-                <h3>🔧 Configuration des API pour accéder aux vraies offres</h3>
+                <h3>🔧 Configuration JSearch API pour accéder aux vraies offres</h3>
             </div>
             """, unsafe_allow_html=True)
             
@@ -617,18 +646,19 @@ def main():
             if api_key == "DEMO_KEY":
                 st.error("❌ **API non configurée** - Vous n'avez pas accès aux vraies offres")
             else:
-                st.success("✅ **API configurée** - Accès aux vraies offres Indeed et LinkedIn")
+                st.success("✅ **API JSearch configurée** - Accès aux vraies offres multi-sources")
             
             st.markdown("""
-            ### 📋 Instructions de configuration (GRATUIT)
+            ### 📋 Instructions de configuration JSearch (GRATUIT)
             
             **1. Créer un compte RapidAPI :**
             - Allez sur https://rapidapi.com/
             - Inscrivez-vous gratuitement
             
-            **2. S'abonner aux API (Plans gratuits disponibles) :**
-            - **Indeed API** : https://rapidapi.com/letscrape-6bRBa3QguO5/api/indeed12
-            - **LinkedIn API** : https://rapidapi.com/rockapis/api/linkedin-data-api
+            **2. S'abonner à JSearch API :**
+            - **JSearch API** : https://rapidapi.com/letscrape-6bRBa3QguO5/api/jsearch
+            - **Plan gratuit** : 2500 requêtes/mois
+            - **Note** : 9.9/10 (excellente fiabilité)
             
             **3. Récupérer votre clé API :**
             - Dans votre dashboard RapidAPI
@@ -639,26 +669,38 @@ def main():
             - Section "Secrets"
             - Ajoutez : `RAPIDAPI_KEY = "votre_cle_ici"`
             
-            ### 📊 Avantages avec API configurée :
-            - ✅ **Centaines d'offres réelles** Indeed et LinkedIn
+            ### 🌐 Avantages JSearch API :
+            - ✅ **Multi-sources** : Indeed + LinkedIn + Glassdoor + ZipRecruiter
+            - ✅ **2500 requêtes/mois gratuites**
             - ✅ **Liens fonctionnels** vers les vraies annonces
             - ✅ **Données en temps réel** mises à jour quotidiennement
             - ✅ **Filtrage anti-arnaque** automatique
             - ✅ **Hub centralisé** - Plus besoin de chercher sur plusieurs sites
+            - ✅ **Détection télétravail** automatique
+            - ✅ **Note 9.9/10** - Excellente fiabilité
             
-            ### 🆓 Plans gratuits disponibles :
-            - **Indeed API** : 25 requêtes/mois gratuit
-            - **LinkedIn API** : 100 requêtes/mois gratuit
+            ### 🆓 Plan gratuit JSearch :
+            - **2500 requêtes/mois** (très généreux)
+            - **Multi-sources** incluses
+            - **Support technique** inclus
             """)
             
             # Test API
-            if st.button("🧪 Tester la configuration API"):
+            if st.button("🧪 Tester la configuration JSearch API"):
                 with st.spinner("Test en cours..."):
-                    test_jobs = get_real_indeed_jobs("test", "France")
+                    test_jobs = get_real_jobs_jsearch("test", "France")
                     if test_jobs:
-                        st.success(f"✅ API fonctionnelle ! {len(test_jobs)} offres de test récupérées")
+                        st.success(f"✅ API JSearch fonctionnelle ! {len(test_jobs)} offres de test récupérées")
+                        st.info(f"Sources détectées : {', '.join(set([j.get('source', 'Autre') for j in test_jobs]))}")
                     else:
-                        st.error("❌ API non fonctionnelle. Vérifiez votre configuration.")
+                        st.error("❌ API JSearch non fonctionnelle. Vérifiez votre configuration.")
+                        # Test backup Indeed
+                        st.info("🔄 Test de l'API Indeed en backup...")
+                        backup_jobs = get_indeed_jobs_backup("test", "France")
+                        if backup_jobs:
+                            st.warning(f"⚠️ API Indeed backup fonctionnelle ({len(backup_jobs)} offres)")
+                        else:
+                            st.error("❌ Aucune API fonctionnelle")
     
     else:
         st.info("👈 Veuillez vous connecter pour accéder à l'application")
@@ -671,8 +713,8 @@ def main():
             st.markdown("""
             <div class="stats-card">
                 <h2>🌐</h2>
-                <h3>Vraies offres Internet</h3>
-                <p>Accès direct aux offres Indeed, LinkedIn et autres sites d'emploi</p>
+                <h3>Multi-sources JSearch</h3>
+                <p>Indeed + LinkedIn + Glassdoor + ZipRecruiter en un seul endroit</p>
             </div>
             """, unsafe_allow_html=True)
         
