@@ -123,8 +123,8 @@ def get_real_job_offers(search_term="", location="", page=1):
         app_id = st.secrets.get("ADZUNA_APP_ID", "your_app_id")
         app_key = st.secrets.get("ADZUNA_APP_KEY", "your_app_key")
     
-    # URL de l'API Adzuna pour la France
-    base_url = "https://api.adzuna.com/v1/api/jobs/fr/search"
+        # URL de l'API Adzuna pour la France
+        base_url = "https://api.adzuna.com/v1/api/jobs/fr/search"
     
     params = {
         'app_id': app_id,
@@ -161,7 +161,7 @@ def get_real_job_offers(search_term="", location="", page=1):
     else:
         return get_demo_real_jobs(search_term, location)
         
-except Exception as e:
+    except Exception as e:
     st.error(f"Erreur lors de la récupération des offres: {str(e)}")
     return get_demo_real_jobs(search_term, location)
 
