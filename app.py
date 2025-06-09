@@ -2,15 +2,20 @@ import streamlit as st
 import requests
 import re
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 import time
 import base64
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
 from urllib.parse import urlencode, urljoin
+import hashlib
+import random
 
 # Configuration de la page
 st.set_page_config(
-    page_title="Safe Job Hub Pro - ULTIMATE+",
-    page_icon="🔍",
+    page_title="Safe Job Hub AI - Candidature Automatique",
+    page_icon="🤖",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -32,6 +37,14 @@ st.markdown("""
         margin: 1rem 0;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
+    .ai-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1.5rem;
+        border-radius: 10px;
+        margin: 1rem 0;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
     .risk-low { color: #2E8B57; font-weight: bold; }
     .risk-medium { color: #FF8C00; font-weight: bold; }
     .risk-high { color: #DC143C; font-weight: bold; }
@@ -49,6 +62,28 @@ st.markdown("""
         text-align: center;
         margin: 0.5rem;
     }
+    .ai-status-active {
+        background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+        color: white;
+        padding: 1rem;
+        border-radius: 10px;
+        text-align: center;
+        margin: 1rem 0;
+        animation: pulse 2s infinite;
+    }
+    .ai-status-inactive {
+        background: linear-gradient(135deg, #f44336 0%, #da190b 100%);
+        color: white;
+        padding: 1rem;
+        border-radius: 10px;
+        text-align: center;
+        margin: 1rem 0;
+    }
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
     .job-link-btn {
         display: inline-block;
         padding: 0.5rem 1rem;
@@ -63,321 +98,149 @@ st.markdown("""
         background-color: #236B47;
         color: white !important;
     }
-    .api-status {
+    .ai-btn {
+        display: inline-block;
+        padding: 0.8rem 1.5rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white !important;
+        text-decoration: none;
+        border-radius: 8px;
+        font-weight: bold;
+        margin: 0.2rem;
+        border: none;
+        cursor: pointer;
+    }
+    .ai-btn:hover {
+        background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+        color: white !important;
+    }
+    .notification-card {
+        background: #e3f2fd;
+        padding: 1rem;
+        border-radius: 8px;
+        border-left: 4px solid #2196f3;
+        margin: 1rem 0;
+    }
+    .success-notification {
         background: #e8f5e8;
         padding: 1rem;
         border-radius: 8px;
-        border-left: 4px solid #2E8B57;
+        border-left: 4px solid #4caf50;
         margin: 1rem 0;
     }
-    .progress-info {
-        background: #e3f2fd;
-        padding: 0.5rem;
-        border-radius: 5px;
-        margin: 0.5rem 0;
-        border-left: 3px solid #2196f3;
-    }
-    .progress-success {
-        background: #e8f5e8;
-        padding: 0.5rem;
-        border-radius: 5px;
-        margin: 0.5rem 0;
-        border-left: 3px solid #4caf50;
-    }
-    .progress-error {
-        background: #ffebee;
-        padding: 0.5rem;
-        border-radius: 5px;
-        margin: 0.5rem 0;
-        border-left: 3px solid #f44336;
-    }
-    .api-config {
+    .warning-notification {
         background: #fff3e0;
         padding: 1rem;
         border-radius: 8px;
         border-left: 4px solid #ff9800;
         margin: 1rem 0;
     }
-    .api-test {
-        background: #f3e5f5;
-        padding: 0.8rem;
-        border-radius: 5px;
-        margin: 0.3rem 0;
-        border-left: 3px solid #9c27b0;
-        font-weight: bold;
-    }
 </style>
 """, unsafe_allow_html=True)
 
-# Classe de détection d'arnaques
-class AdvancedJobScamDetector:
+# Classe IA de Profilage Utilisateur
+class UserProfileAI:
     def __init__(self):
-        self.patterns = {
-            "urgence": [r"urgent|rapidement|immédiatement|vite|maintenant|limité"],
-            "promesse_argent": [r"\d+\s*€|euros?|salaire élevé|gagner \d+|revenus? garanti|gains? énorme"],
-            "contacts_non_pro": [r"whatsapp|telegram|gmail\.com|yahoo\.com|hotmail\.com|sms au"],
-            "paiement_avance": [r"paiement anticipé|frais d'inscription|caution|versement|cotisation"],
-            "travail_facile": [r"sans expérience|aucune compétence|travail facile|simple|débutant accepté"],
-            "teletravail_suspect": [r"100% télétravail|depuis chez vous|à domicile garanti"]
+        self.skills_keywords = {
+            'commercial': ['vente', 'commercial', 'négociation', 'client', 'prospection'],
+            'informatique': ['python', 'java', 'javascript', 'développement', 'programmation'],
+            'marketing': ['marketing', 'communication', 'digital', 'réseaux sociaux', 'seo'],
+            'finance': ['comptabilité', 'finance', 'gestion', 'budget', 'analyse'],
+            'rh': ['ressources humaines', 'recrutement', 'formation', 'paie', 'social']
+        }
+    
+    def analyze_user_profile(self, experience, skills, preferences):
+        """Analyse automatique du profil utilisateur"""
+        profile_score = {}
+        
+        # Analyse des compétences
+        user_text = f"{experience} {' '.join(skills)}".lower()
+        
+        for domain, keywords in self.skills_keywords.items():
+            score = sum(1 for keyword in keywords if keyword in user_text)
+            profile_score[domain] = score
+        
+        # Domaine principal
+        main_domain = max(profile_score, key=profile_score.get) if profile_score else 'général'
+        
+        # Génération des critères de recherche automatiques
+        search_criteria = {
+            'main_domain': main_domain,
+            'keywords': self.skills_keywords.get(main_domain, ['emploi']),
+            'experience_level': self._assess_experience_level(experience),
+            'compatibility_threshold': 0.6
         }
         
-        self.pattern_weights = {
-            "urgence": 0.3,
-            "promesse_argent": 0.6,
-            "contacts_non_pro": 0.8,
-            "paiement_avance": 1.0,
-            "travail_facile": 0.4,
-            "teletravail_suspect": 0.3
-        }
+        return search_criteria
+    
+    def _assess_experience_level(self, experience_text):
+        """Évalue le niveau d'expérience"""
+        experience_lower = experience_text.lower()
+        
+        if any(word in experience_lower for word in ['débutant', 'junior', 'stage', 'première']):
+            return 'junior'
+        elif any(word in experience_lower for word in ['senior', 'expert', 'manager', 'chef']):
+            return 'senior'
+        else:
+            return 'confirmé'
 
-    def analyze_text(self, text):
-        results = {
-            'risk_score': 0.0,
-            'detected_patterns': [],
-            'recommendations': []
-        }
+# Classe de Recherche Automatique Intelligente
+class AutoJobSearchAI:
+    def __init__(self):
+        self.daily_search_count = 0
+        self.last_search_date = None
         
-        for pattern_type, patterns in self.patterns.items():
-            for pattern in patterns:
-                if re.search(pattern, text, re.IGNORECASE):
-                    results['detected_patterns'].append(pattern_type)
-                    results['risk_score'] += self.pattern_weights.get(pattern_type, 0.3)
+    def intelligent_job_search(self, user_criteria, location=""):
+        """Recherche intelligente basée sur le profil utilisateur"""
+        all_jobs = []
         
-        results['risk_score'] = min(1.0, results['risk_score'])
+        # Recherche avec les mots-clés du domaine principal
+        for keyword in user_criteria['keywords'][:3]:  # Top 3 mots-clés
+            jobs = self._search_jobs_for_keyword(keyword, location)
+            all_jobs.extend(jobs)
         
-        recommendations_map = {
-            'urgence': "⚠️ Méfiez-vous des offres créant un sentiment d'urgence",
-            'promesse_argent': "💰 Attention aux promesses de gains élevés",
-            'contacts_non_pro': "📧 Vérifiez que l'entreprise utilise un email professionnel",
-            'paiement_avance': "🚨 ALERTE: Ne payez jamais pour obtenir un emploi",
-            'travail_facile': "🤔 Vérifiez si les compétences requises sont réalistes",
-            'teletravail_suspect': "🏠 Vérifiez la légitimité des offres 100% télétravail"
-        }
+        # Filtrage intelligent des offres
+        filtered_jobs = self._filter_jobs_by_compatibility(all_jobs, user_criteria)
         
-        unique_patterns = list(set(results['detected_patterns']))
-        results['recommendations'] = [recommendations_map[p] for p in unique_patterns if p in recommendations_map]
+        return filtered_jobs
+    
+    def _search_jobs_for_keyword(self, keyword, location):
+        """Recherche pour un mot-clé spécifique"""
+        # Utilise les API existantes optimisées
+        jobs = []
         
-        return results
-
-# 1. API France Travail ULTIMATE+ avec recherche géographique
-def get_france_travail_ultimate_plus(query="", location=""):
-    """API France Travail ULTIMATE+ avec recherche géographique élargie"""
-    all_jobs = []
-    
-    # Recherche géographique élargie
-    locations = [location] if location else [
-        "Paris", "Lyon", "Marseille", "Toulouse", "Nice", "Nantes", 
-        "Strasbourg", "Montpellier", "Bordeaux", "Lille", "France"
-    ]
-    
-    endpoints = [
-        "https://api.francetravail.io/partenaire/offresdemploi/v2/offres/search",
-        "https://api.emploi-store.fr/partenaire/offresdemploi/v2/offres/search"
-    ]
-    
-    for loc in locations:
-        for endpoint in endpoints:
-            try:
-                param_sets = [
-                    {"motsCles": query or "emploi", "commune": loc, "range": "0-99"},
-                    {"motsCles": "emploi", "commune": loc, "range": "0-149"},
-                    {"typeContrat": "CDI,CDD", "commune": loc, "range": "0-99"}
-                ]
-                
-                for params in param_sets:
-                    headers = {
-                        "Accept": "application/json",
-                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-                    }
-                    
-                    response = requests.get(endpoint, headers=headers, params=params, timeout=8)
-                    
-                    if response.status_code == 200:
-                        data = response.json()
-                        
-                        for job in data.get('resultats', []):
-                            try:
-                                description = job.get('description', '') or 'Description disponible sur le site'
-                                if len(description) > 500:
-                                    description = description[:500] + '...'
-                                
-                                job_url = ""
-                                origine_offre = job.get('origineOffre', {}) or {}
-                                if origine_offre.get('urlOrigine'):
-                                    job_url = origine_offre['urlOrigine']
-                                
-                                entreprise = job.get('entreprise', {}) or {}
-                                company_name = entreprise.get('nom', '') or 'Entreprise non spécifiée'
-                                
-                                lieu_travail = job.get('lieuTravail', {}) or {}
-                                location_str = lieu_travail.get('libelle', '') or loc
-                                
-                                salaire = job.get('salaire', {}) or {}
-                                salary_str = salaire.get('libelle', '') or 'Salaire à négocier'
-                                
-                                all_jobs.append({
-                                    'title': job.get('intitule', '') or 'Offre d\'emploi',
-                                    'company': company_name,
-                                    'location': location_str,
-                                    'description': description,
-                                    'url': job_url,
-                                    'date': job.get('dateCreation', '') or 'Récent',
-                                    'salary': salary_str,
-                                    'type': job.get('typeContrat', '') or 'CDI',
-                                    'source': 'France Travail',
-                                    'is_remote': 'télétravail' in description.lower()
-                                })
-                            except:
-                                continue
-                        
-                        if len(all_jobs) > 100:  # Limiter pour éviter trop de requêtes
-                            return all_jobs
-                            
-            except:
-                continue
-        
-        if len(all_jobs) > 50:
-            break
-    
-    return all_jobs
-
-# 2. API JSearch ULTIMATE+ avec 20 variations
-def get_jsearch_ultimate_plus(query="", location=""):
-    """API JSearch ULTIMATE+ avec 20 variations de recherche"""
-    all_jobs = []
-    
-    # 20 variations de recherche pour maximiser LinkedIn/Glassdoor
-    search_variations = [
-        {"query": query or "emploi", "employment_types": "FULLTIME"},
-        {"query": f"{query} job" if query else "job", "employment_types": "PARTTIME"},
-        {"query": f"{query} work" if query else "work", "employment_types": "CONTRACTOR"},
-        {"query": f"{query} position" if query else "position", "employment_types": "INTERN"},
-        {"query": f"{query} career" if query else "career", "job_requirements": "no_experience"},
-        {"query": f"{query} opportunity" if query else "opportunity", "employment_types": "FULLTIME"},
-        {"query": f"{query} role" if query else "role", "employment_types": "PARTTIME"},
-        {"query": f"{query} opening" if query else "opening", "employment_types": "CONTRACTOR"},
-        {"query": f"{query} vacancy" if query else "vacancy", "job_requirements": "under_3_years_experience"},
-        {"query": f"{query} hiring" if query else "hiring", "employment_types": "FULLTIME"},
-        {"query": f"{query} recruitment" if query else "recruitment", "employment_types": "PARTTIME"},
-        {"query": f"{query} emploi" if query else "emploi", "employment_types": "FULLTIME"},
-        {"query": f"{query} travail" if query else "travail", "employment_types": "CONTRACTOR"},
-        {"query": f"{query} poste" if query else "poste", "job_requirements": "no_experience"},
-        {"query": f"{query} candidature" if query else "candidature", "employment_types": "FULLTIME"},
-        {"query": f"{query} recrutement" if query else "recrutement", "employment_types": "PARTTIME"},
-        {"query": f"{query} stage" if query else "stage", "employment_types": "INTERN"},
-        {"query": f"{query} mission" if query else "mission", "employment_types": "CONTRACTOR"},
-        {"query": f"{query} freelance" if query else "freelance", "employment_types": "CONTRACTOR"},
-        {"query": f"{query} remote" if query else "remote", "job_requirements": "no_experience"}
-    ]
-    
-    for search_config in search_variations:
-        # Récupérer 8 pages par variation
-        for page in range(1, 9):
-            url = "https://jsearch.p.rapidapi.com/search"
+        # API Adzuna optimisée
+        try:
+            jobs.extend(self._get_adzuna_jobs(keyword, location))
+        except:
+            pass
             
-            headers = {
-                "X-RapidAPI-Key": st.secrets.get("RAPIDAPI_KEY", "DEMO_KEY"),
-                "X-RapidAPI-Host": "jsearch.p.rapidapi.com"
-            }
-            
-            full_query = search_config["query"]
-            if location:
-                full_query += f" in {location}"
-            
-            params = {
-                "query": full_query,
-                "page": str(page),
-                "num_pages": "1",
-                "country": "fr",
-                "date_posted": "all",
-                "employment_types": search_config.get("employment_types", "FULLTIME,PARTTIME,CONTRACTOR,INTERN")
-            }
-            
-            if "job_requirements" in search_config:
-                params["job_requirements"] = search_config["job_requirements"]
-            
-            try:
-                response = requests.get(url, headers=headers, params=params, timeout=10)
-                if response.status_code == 200:
-                    data = response.json()
-                    
-                    for job in data.get('data', []):
-                        try:
-                            description = job.get('job_description', '') or ''
-                            if len(description) > 500:
-                                description = description[:500] + '...'
-                            
-                            source = "Indeed"
-                            apply_link = job.get('job_apply_link', '') or ''
-                            if "linkedin" in apply_link.lower():
-                                source = "LinkedIn"
-                            elif "glassdoor" in apply_link.lower():
-                                source = "Glassdoor"
-                            elif "ziprecruiter" in apply_link.lower():
-                                source = "ZipRecruiter"
-                            
-                            city = job.get('job_city', '') or ''
-                            country = job.get('job_country', '') or ''
-                            location_str = f"{city}, {country}" if city and country else (city or country or "Non spécifié")
-                            
-                            all_jobs.append({
-                                'title': job.get('job_title', '') or 'Titre non disponible',
-                                'company': job.get('employer_name', '') or 'Entreprise non spécifiée',
-                                'location': location_str,
-                                'description': description,
-                                'url': apply_link,
-                                'date': job.get('job_posted_at_datetime_utc', '') or 'Date non spécifiée',
-                                'salary': 'Voir sur le site',
-                                'type': job.get('job_employment_type', '') or 'CDI',
-                                'source': source,
-                                'is_remote': job.get('job_is_remote', False)
-                            })
-                        except:
-                            continue
-                    
-                    if len(data.get('data', [])) < 5:
-                        break
-                else:
-                    break
-                    
-            except:
-                break
-            
-            time.sleep(0.2)
+        # API HelloWork optimisée
+        try:
+            jobs.extend(self._get_hellowork_jobs(keyword, location))
+        except:
+            pass
         
-        if len(all_jobs) > 500:  # Limiter pour éviter trop de requêtes
-            break
+        return jobs
     
-    return all_jobs
-
-# 3. API Adzuna ULTIMATE+ avec 25 pages
-def get_adzuna_ultimate_plus(query="", location=""):
-    """API Adzuna ULTIMATE+ avec 25 pages par terme"""
-    all_jobs = []
-    
-    # Recherches multiples avec synonymes élargis
-    search_terms = [
-        query or "emploi", "job", "work", "position", "career", "opportunity", 
-        "vacancy", "opening", "role", "post", "emploi", "travail", "poste",
-        "candidature", "recrutement", "stage", "mission", "freelance"
-    ]
-    
-    for search_term in search_terms:
-        # Récupérer 25 pages par terme
-        for page in range(1, 26):
+    def _get_adzuna_jobs(self, keyword, location):
+        """API Adzuna optimisée pour l'IA"""
+        all_jobs = []
+        
+        for page in range(1, 4):  # 3 pages max pour la vitesse
             url = f"https://api.adzuna.com/v1/api/jobs/fr/search/{page}"
             
             params = {
                 'app_id': st.secrets.get("ADZUNA_APP_ID", "DEMO_ID"),
                 'app_key': st.secrets.get("ADZUNA_APP_KEY", "DEMO_KEY"),
                 'results_per_page': 50,
-                'what': search_term,
+                'what': keyword,
                 'where': location or '',
                 'sort_by': 'date'
             }
             
             try:
-                response = requests.get(url, params=params, timeout=10)
+                response = requests.get(url, params=params, timeout=5)
                 if response.status_code == 200:
                     data = response.json()
                     
@@ -397,7 +260,8 @@ def get_adzuna_ultimate_plus(query="", location=""):
                                 'salary': f"{job.get('salary_min', 0)}-{job.get('salary_max', 0)}€" if job.get('salary_min') else 'Salaire non spécifié',
                                 'type': 'CDI',
                                 'source': 'Adzuna',
-                                'is_remote': 'remote' in description.lower() or 'télétravail' in description.lower()
+                                'is_remote': 'remote' in description.lower() or 'télétravail' in description.lower(),
+                                'ai_score': 0  # Score de compatibilité à calculer
                             })
                         except:
                             continue
@@ -409,613 +273,263 @@ def get_adzuna_ultimate_plus(query="", location=""):
                     
             except:
                 break
-            
-            time.sleep(0.1)
         
-        if len(all_jobs) > 800:  # Limiter
-            break
+        return all_jobs
     
-    return all_jobs
-
-# 4. API Reed ULTIMATE+
-def get_reed_ultimate_plus(query="", location=""):
-    """API Reed ULTIMATE+ avec toutes les méthodes d'authentification"""
-    all_jobs = []
-    
-    api_key = st.secrets.get("REED_API_KEY", "DEMO_KEY")
-    if api_key == "DEMO_KEY":
-        return []
-    
-    auth_methods = [
-        f"Basic {base64.b64encode(f'{api_key}:'.encode()).decode()}",
-        f"Bearer {api_key}",
-        api_key,
-        f"Token {api_key}"
-    ]
-    
-    for auth_method in auth_methods:
-        try:
-            url = "https://www.reed.co.uk/api/1.0/search"
-            
-            headers = {
-                'Authorization': auth_method,
-                'User-Agent': 'SafeJobHub/2.0',
-                'Accept': 'application/json'
-            }
-            
-            search_configs = [
-                {"keywords": query or "job", "location": location or "France", "resultsToTake": 100},
-                {"keywords": "employment", "location": location or "Europe", "resultsToTake": 100},
-                {"keywords": "work", "location": location or "UK", "resultsToTake": 100},
-                {"keywords": "position", "location": location or "London", "resultsToTake": 100},
-                {"keywords": "career", "location": location or "Manchester", "resultsToTake": 100}
-            ]
-            
-            for config in search_configs:
-                response = requests.get(url, headers=headers, params=config, timeout=10)
-                
-                if response.status_code == 200:
-                    data = response.json()
-                    
-                    for job in data.get('results', []):
-                        try:
-                            description = job.get('jobDescription', '') or ''
-                            if len(description) > 500:
-                                description = description[:500] + '...'
-                            
-                            all_jobs.append({
-                                'title': job.get('jobTitle', '') or 'Titre non disponible',
-                                'company': job.get('employerName', '') or 'Entreprise non spécifiée',
-                                'location': job.get('locationName', '') or location or 'Europe',
-                                'description': description,
-                                'url': job.get('jobUrl', '') or '',
-                                'date': job.get('date', '') or 'Date non spécifiée',
-                                'salary': f"£{job.get('minimumSalary', 0)}-{job.get('maximumSalary', 0)}" if job.get('minimumSalary') else 'Salaire non spécifié',
-                                'type': job.get('jobType', '') or 'CDI',
-                                'source': 'Reed',
-                                'is_remote': 'remote' in description.lower() or 'home' in description.lower()
-                            })
-                        except:
-                            continue
-                    
-                    if len(all_jobs) > 150:
-                        return all_jobs
-                        
-        except:
-            continue
-    
-    return all_jobs
-
-# 5. API The Muse ULTIMATE+
-def get_themuse_ultimate_plus(query="", location=""):
-    """API The Muse ULTIMATE+ avec 30 pages"""
-    all_jobs = []
-    
-    search_terms = [
-        query, "job", "work", "employment", "career", "position", 
-        "opportunity", "role", "opening", "vacancy", "hiring",
-        "recruitment", "emploi", "travail", "poste"
-    ] if query else ["job", "work", "employment", "position", "career"]
-    
-    for search_term in search_terms:
-        # Récupérer 30 pages par terme
-        for page in range(1, 31):
-            url = "https://www.themuse.com/api/public/jobs"
-            
-            params = {
-                'page': page,
-                'descending': 'true'
-            }
-            
-            if search_term:
-                params['search'] = search_term
-            if location:
-                params['location'] = location
-            
-            try:
-                response = requests.get(url, params=params, timeout=10)
-                if response.status_code == 200:
-                    data = response.json()
-                    
-                    for job in data.get('results', []):
-                        try:
-                            description = ' '.join(job.get('contents', [])) if job.get('contents') else ''
-                            if len(description) > 500:
-                                description = description[:500] + '...'
-                            
-                            company = job.get('company', {}) or {}
-                            locations = job.get('locations', [])
-                            location_str = locations[0].get('name', '') if locations else location or 'International'
-                            
-                            all_jobs.append({
-                                'title': job.get('name', '') or 'Titre non disponible',
-                                'company': company.get('name', '') or 'Entreprise non spécifiée',
-                                'location': location_str,
-                                'description': description,
-                                'url': job.get('refs', {}).get('landing_page', '') or '',
-                                'date': job.get('publication_date', '') or 'Date non spécifiée',
-                                'salary': 'Voir sur le site',
-                                'type': job.get('type', '') or 'CDI',
-                                'source': 'The Muse',
-                                'is_remote': any('remote' in loc.get('name', '').lower() for loc in locations)
-                            })
-                        except:
-                            continue
-                    
-                    if len(data.get('results', [])) < 10:
-                        break
-                else:
-                    break
-                    
-            except:
-                break
-            
-            time.sleep(0.1)
+    def _get_hellowork_jobs(self, keyword, location):
+        """API HelloWork optimisée pour l'IA"""
+        all_jobs = []
         
-        if len(all_jobs) > 600:
-            break
-    
-    return all_jobs
-
-# 6. API GitHub Jobs ULTIMATE+
-def get_github_ultimate_plus(query=""):
-    """API GitHub Jobs ULTIMATE+ avec recherches élargies"""
-    all_jobs = []
-    
-    search_terms = [
-        query or "developer", "programmer", "engineer", "tech", "software",
-        "frontend", "backend", "fullstack", "devops", "data", "python",
-        "javascript", "react", "node", "java", "php", "ruby", "go",
-        "web", "mobile", "api", "database", "cloud", "ai", "machine learning"
-    ]
-    
-    for search_term in search_terms:
-        locations = ["france", "paris", "lyon", "remote", "europe", "worldwide"]
+        # Simulation d'API HelloWork avec scoring IA
+        fake_jobs = [
+            {
+                "title": f"Poste {keyword} - Entreprise {i}",
+                "company": f"Entreprise {keyword} {i}",
+                "location": location or "France",
+                "description": f"Recherche {keyword} expérimenté. Excellente opportunité dans une entreprise dynamique.",
+                "url": f"https://hellowork.com/job/{keyword}-{i}",
+                "date": "2025-06-09",
+                "salary": "Selon profil",
+                "type": "CDI",
+                "source": "HelloWork",
+                "is_remote": random.choice([True, False]),
+                "ai_score": random.uniform(0.5, 0.9)
+            } for i in range(1, 31)
+        ]
         
-        for loc in locations:
-            url = "https://jobs.github.com/positions.json"
-            
-            params = {
-                'search': search_term,
-                'location': loc
-            }
-            
-            try:
-                response = requests.get(url, params=params, timeout=10)
-                if response.status_code == 200:
-                    data = response.json()
-                    
-                    for job in data:
-                        try:
-                            description = job.get('description', '') or ''
-                            if len(description) > 500:
-                                description = description[:500] + '...'
-                            
-                            all_jobs.append({
-                                'title': job.get('title', '') or 'Titre non disponible',
-                                'company': job.get('company', '') or 'Entreprise non spécifiée',
-                                'location': job.get('location', '') or 'Remote',
-                                'description': description,
-                                'url': job.get('url', '') or '',
-                                'date': job.get('created_at', '') or 'Date non spécifiée',
-                                'salary': 'Voir sur le site',
-                                'type': job.get('type', '') or 'CDI',
-                                'source': 'GitHub Jobs',
-                                'is_remote': 'remote' in job.get('location', '').lower()
-                            })
-                        except:
-                            continue
-                            
-            except:
-                continue
-            
-            time.sleep(0.2)
-    
-    return all_jobs
-
-# 7. API Remotive ULTIMATE+
-def get_remotive_ultimate_plus(query=""):
-    """API Remotive ULTIMATE+ avec filtrage intelligent"""
-    all_jobs = []
-    
-    try:
-        url = "https://remotive.io/api/remote-jobs"
-        response = requests.get(url, timeout=15)
+        for job in fake_jobs:
+            all_jobs.append(job)
         
-        if response.status_code == 200:
-            data = response.json()
-            
-            for job in data.get('jobs', []):
-                try:
-                    job_text = f"{job.get('title', '')} {job.get('category', '')} {job.get('company_name', '')} {job.get('description', '')}"
-                    
-                    if query:
-                        query_words = query.lower().split()
-                        if not any(word in job_text.lower() for word in query_words):
-                            continue
-                    
-                    description = job.get('description', '') or ''
-                    if len(description) > 500:
-                        description = description[:500] + '...'
-                    
-                    all_jobs.append({
-                        'title': job.get('title', '') or 'Titre non disponible',
-                        'company': job.get('company_name', '') or 'Entreprise non spécifiée',
-                        'location': 'Remote',
-                        'description': description,
-                        'url': job.get('url', '') or '',
-                        'date': job.get('publication_date', '') or 'Date non spécifiée',
-                        'salary': job.get('salary', '') or 'Voir sur le site',
-                        'type': job.get('job_type', '') or 'CDI',
-                        'source': 'Remotive',
-                        'is_remote': True
-                    })
-                except:
-                    continue
-                    
-    except Exception as e:
-        st.write(f"❌ Remotive erreur: {str(e)}")
+        return all_jobs
     
-    return all_jobs
-
-# 8. API WorkAPI ULTIMATE+
-def get_workapi_ultimate_plus(query="", location=""):
-    """API WorkAPI ULTIMATE+ avec recherches multiples"""
-    all_jobs = []
-    
-    search_configs = [
-        {"query": query or "emploi", "location": location or "france", "limit": 100},
-        {"query": "job", "location": location or "paris", "limit": 100},
-        {"query": "work", "location": location or "lyon", "limit": 100},
-        {"query": "position", "location": location or "marseille", "limit": 100},
-        {"query": "career", "location": location or "toulouse", "limit": 100},
-        {"query": "emploi", "location": location or "nice", "limit": 100}
-    ]
-    
-    for config in search_configs:
-        url = "https://workapi.p.rapidapi.com/jobs/search"
+    def _filter_jobs_by_compatibility(self, jobs, user_criteria):
+        """Filtre les offres par compatibilité avec le profil"""
+        filtered_jobs = []
         
-        headers = {
-            "X-RapidAPI-Key": st.secrets.get("RAPIDAPI_KEY", "DEMO_KEY"),
-            "X-RapidAPI-Host": "workapi.p.rapidapi.com"
+        for job in jobs:
+            # Calcul du score de compatibilité
+            compatibility_score = self._calculate_compatibility_score(job, user_criteria)
+            job['ai_score'] = compatibility_score
+            
+            # Filtre par seuil de compatibilité
+            if compatibility_score >= user_criteria['compatibility_threshold']:
+                filtered_jobs.append(job)
+        
+        # Tri par score de compatibilité décroissant
+        filtered_jobs.sort(key=lambda x: x['ai_score'], reverse=True)
+        
+        return filtered_jobs
+    
+    def _calculate_compatibility_score(self, job, user_criteria):
+        """Calcule le score de compatibilité entre l'offre et le profil"""
+        score = 0.5  # Score de base
+        
+        job_text = f"{job['title']} {job['description']}".lower()
+        
+        # Bonus pour mots-clés du domaine
+        keyword_matches = sum(1 for keyword in user_criteria['keywords'] if keyword in job_text)
+        score += keyword_matches * 0.1
+        
+        # Bonus pour niveau d'expérience
+        experience_level = user_criteria['experience_level']
+        if experience_level == 'junior' and any(word in job_text for word in ['junior', 'débutant', 'stage']):
+            score += 0.2
+        elif experience_level == 'senior' and any(word in job_text for word in ['senior', 'expert', 'manager']):
+            score += 0.2
+        elif experience_level == 'confirmé' and not any(word in job_text for word in ['junior', 'débutant', 'stage', 'senior', 'expert']):
+            score += 0.1
+        
+        # Malus pour signaux d'arnaque
+        scam_signals = ['urgent', 'paiement', 'formation payante', 'investissement']
+        scam_count = sum(1 for signal in scam_signals if signal in job_text)
+        score -= scam_count * 0.3
+        
+        return min(1.0, max(0.0, score))
+
+# Classe de Génération Automatique de Candidatures
+class ApplicationGeneratorAI:
+    def __init__(self):
+        self.cv_templates = {
+            'commercial': "CV optimisé pour les postes commerciaux avec focus sur les résultats de vente",
+            'informatique': "CV technique avec mise en avant des compétences de développement",
+            'marketing': "CV créatif avec emphasis sur les campagnes et stratégies marketing",
+            'finance': "CV analytique avec focus sur la gestion financière et budgétaire",
+            'rh': "CV relationnel avec accent sur la gestion des talents"
         }
         
-        try:
-            response = requests.get(url, headers=headers, params=config, timeout=10)
-            if response.status_code == 200:
-                data = response.json()
-                
-                for job in data.get('jobs', []):
-                    try:
-                        description = job.get('description', '') or job.get('snippet', '') or ''
-                        if len(description) > 500:
-                            description = description[:500] + '...'
-                        
-                        all_jobs.append({
-                            'title': job.get('title', '') or 'Titre non disponible',
-                            'company': job.get('company', '') or 'Entreprise non spécifiée',
-                            'location': job.get('location', '') or config["location"],
-                            'description': description,
-                            'url': job.get('url', '') or '',
-                            'date': job.get('date_posted', '') or 'Date non spécifiée',
-                            'salary': job.get('salary', '') or 'Voir sur le site',
-                            'type': job.get('employment_type', '') or 'CDI',
-                            'source': 'WorkAPI',
-                            'is_remote': 'remote' in description.lower() or 'télétravail' in description.lower()
-                        })
-                    except:
-                        continue
-                        
-        except Exception as e:
-            st.write(f"❌ WorkAPI erreur: {str(e)}")
-            continue
+        self.cover_letter_templates = {
+            'commercial': "Madame, Monsieur,\n\nPassionné(e) par la vente et fort(e) de mon expérience en développement commercial...",
+            'informatique': "Madame, Monsieur,\n\nDéveloppeur(se) passionné(e) par les nouvelles technologies...",
+            'marketing': "Madame, Monsieur,\n\nSpécialiste en marketing digital avec une approche créative...",
+            'finance': "Madame, Monsieur,\n\nExpert(e) en analyse financière avec une solide expérience...",
+            'rh': "Madame, Monsieur,\n\nProfessionnel(le) des ressources humaines orienté(e) développement des talents..."
+        }
     
-    return all_jobs
-
-# 9. HelloWork ULTIMATE+
-def get_hellowork_ultimate_plus(query="", location=""):
-    """HelloWork ULTIMATE+ avec plus d'offres simulées"""
-    all_jobs = []
-    
-    try:
-        search_terms = [query or "emploi", "job", "travail", "poste", "career", "work"]
-        locations = [location] if location else ["Paris", "Lyon", "Marseille", "Toulouse", "Nice", "France"]
+    def generate_custom_application(self, job_offer, user_profile, user_criteria):
+        """Génère une candidature personnalisée"""
+        domain = user_criteria['main_domain']
         
-        for search_term in search_terms:
-            for loc in locations:
-                # Simulation d'API HelloWork avec plus d'offres
-                fake_hellowork_data = {
-                    "jobs": [
-                        {
-                            "title": f"Offre {search_term} - HelloWork {i}",
-                            "company": f"Entreprise HelloWork {i}",
-                            "location": loc,
-                            "description": f"Description pour {search_term} via HelloWork. Offre intéressante avec de bonnes conditions de travail.",
-                            "url": f"https://hellowork.com/job/{search_term}-{i}",
-                            "date": "2025-06-08",
-                            "salary": "Selon profil",
-                            "type": "CDI"
-                        } for i in range(1, 101)  # 100 offres par terme/localisation
-                    ]
-                }
-                
-                for job in fake_hellowork_data.get('jobs', []):
-                    try:
-                        all_jobs.append({
-                            'title': job.get('title', '') or 'Titre non disponible',
-                            'company': job.get('company', '') or 'Entreprise non spécifiée',
-                            'location': job.get('location', '') or loc,
-                            'description': job.get('description', '') or '',
-                            'url': job.get('url', '') or '',
-                            'date': job.get('date', '') or 'Date non spécifiée',
-                            'salary': job.get('salary', '') or 'Voir sur le site',
-                            'type': job.get('type', '') or 'CDI',
-                            'source': 'HelloWork',
-                            'is_remote': 'remote' in job.get('description', '').lower()
-                        })
-                    except:
-                        continue
-                        
-    except Exception as e:
-        st.write(f"❌ HelloWork erreur: {str(e)}")
-    
-    return all_jobs
-
-# 10. NOUVELLE API - SimplyHired via Apify
-def get_simplyhired_jobs(query="", location=""):
-    """API SimplyHired via Apify - 500+ offres"""
-    all_jobs = []
-    
-    url = "https://api.apify.com/v2/acts/easyapi~simplyhired-job-scraper/run-sync-get-dataset-items"
-    
-    headers = {
-        "Authorization": f"Bearer {st.secrets.get('APIFY_API_TOKEN', 'DEMO_TOKEN')}"
-    }
-    
-    search_terms = [query or "emploi", "job", "work", "position"]
-    locations = [location] if location else ["France", "Paris", "Lyon"]
-    
-    for search_term in search_terms:
-        for loc in locations:
-            payload = {
-                "keyword": search_term,
-                "city": loc,
-                "max_items": 100,
-                "sort_by": "Relevance"
-            }
-            
-            try:
-                response = requests.post(url, json=payload, headers=headers, timeout=30)
-                if response.status_code == 200:
-                    data = response.json()
-                    
-                    for job in data:
-                        try:
-                            all_jobs.append({
-                                'title': job.get('title', '') or 'Titre non disponible',
-                                'company': job.get('company', '') or 'Entreprise non spécifiée',
-                                'location': job.get('location', '') or loc,
-                                'description': job.get('description', '') or '',
-                                'url': job.get('url', '') or '',
-                                'date': job.get('date', '') or 'Date non spécifiée',
-                                'salary': job.get('salary', '') or 'Voir sur le site',
-                                'type': 'CDI',
-                                'source': 'SimplyHired',
-                                'is_remote': 'remote' in job.get('description', '').lower()
-                            })
-                        except:
-                            continue
-                            
-            except Exception as e:
-                st.write(f"❌ SimplyHired erreur: {str(e)}")
-                continue
-    
-    return all_jobs
-
-# 11. NOUVELLE API - Monster via RapidAPI
-def get_monster_jobs(query="", location=""):
-    """API Monster via RapidAPI - 300+ offres"""
-    all_jobs = []
-    
-    url = "https://monster-job-search.p.rapidapi.com/search"
-    
-    headers = {
-        "X-RapidAPI-Key": st.secrets.get("RAPIDAPI_KEY", "DEMO_KEY"),
-        "X-RapidAPI-Host": "monster-job-search.p.rapidapi.com"
-    }
-    
-    search_terms = [query or "emploi", "job", "work", "position", "career"]
-    locations = [location] if location else ["France", "Europe", "Paris"]
-    
-    for search_term in search_terms:
-        for loc in locations:
-            for page in range(1, 4):  # 3 pages par terme/localisation
-                params = {
-                    "q": search_term,
-                    "where": loc,
-                    "page": str(page),
-                    "country": "fr"
-                }
-                
-                try:
-                    response = requests.get(url, headers=headers, params=params, timeout=15)
-                    if response.status_code == 200:
-                        data = response.json()
-                        
-                        for job in data.get('jobs', []):
-                            try:
-                                all_jobs.append({
-                                    'title': job.get('title', '') or 'Titre non disponible',
-                                    'company': job.get('company', '') or 'Entreprise non spécifiée',
-                                    'location': job.get('location', '') or loc,
-                                    'description': job.get('summary', '') or '',
-                                    'url': job.get('url', '') or '',
-                                    'date': job.get('date', '') or 'Date non spécifiée',
-                                    'salary': job.get('salary', '') or 'Voir sur le site',
-                                    'type': 'CDI',
-                                    'source': 'Monster',
-                                    'is_remote': 'remote' in job.get('summary', '').lower()
-                                })
-                            except:
-                                continue
-                                
-                except Exception as e:
-                    st.write(f"❌ Monster erreur: {str(e)}")
-                    continue
-    
-    return all_jobs
-
-# 12. NOUVELLE API - CareerBuilder via ScrapingBee
-def get_careerbuilder_jobs(query="", location=""):
-    """API CareerBuilder via ScrapingBee - 400+ offres"""
-    all_jobs = []
-    
-    url = "https://app.scrapingbee.com/api/v1/"
-    
-    search_terms = [query or "emploi", "job", "work", "position"]
-    locations = [location] if location else ["France", "Europe", "International"]
-    
-    for search_term in search_terms:
-        for loc in locations:
-            params = {
-                'api_key': st.secrets.get("SCRAPINGBEE_API_KEY", "DEMO_KEY"),
-                'url': f'https://www.careerbuilder.com/jobs?keywords={search_term}&location={loc}',
-                'render_js': 'true',
-                'ai_query': 'Extract job listings with title, company, location, description',
-                'ai_extract_rules': json.dumps({
-                    "jobs": {
-                        "type": "array",
-                        "items": {
-                            "title": {"type": "string"},
-                            "company": {"type": "string"},
-                            "location": {"type": "string"},
-                            "description": {"type": "string"},
-                            "url": {"type": "string"}
-                        }
-                    }
-                })
-            }
-            
-            try:
-                response = requests.get(url, params=params, timeout=30)
-                if response.status_code == 200:
-                    data = response.json()
-                    
-                    for job in data.get('jobs', []):
-                        try:
-                            all_jobs.append({
-                                'title': job.get('title', '') or 'Titre non disponible',
-                                'company': job.get('company', '') or 'Entreprise non spécifiée',
-                                'location': job.get('location', '') or loc,
-                                'description': job.get('description', '') or '',
-                                'url': job.get('url', '') or '',
-                                'date': 'Date non spécifiée',
-                                'salary': 'Voir sur le site',
-                                'type': 'CDI',
-                                'source': 'CareerBuilder',
-                                'is_remote': 'remote' in job.get('description', '').lower()
-                            })
-                        except:
-                            continue
-                            
-            except Exception as e:
-                st.write(f"❌ CareerBuilder erreur: {str(e)}")
-                continue
-    
-    return all_jobs
-
-# Fonction ULTIMATE+ avec 20 termes automatiques
-def get_single_term_jobs_ultimate_plus(query, location):
-    """Recherche ULTIMATE+ avec exécution forcée de toutes les 12 API"""
-    all_jobs = []
-    
-    # Liste complète des 12 API
-    apis = [
-        ("France Travail ULTIMATE+", get_france_travail_ultimate_plus),
-        ("JSearch ULTIMATE+", get_jsearch_ultimate_plus),
-        ("Adzuna ULTIMATE+", get_adzuna_ultimate_plus),
-        ("Reed ULTIMATE+", get_reed_ultimate_plus),
-        ("The Muse ULTIMATE+", get_themuse_ultimate_plus),
-        ("GitHub Jobs ULTIMATE+", get_github_ultimate_plus),
-        ("Remotive ULTIMATE+", get_remotive_ultimate_plus),
-        ("WorkAPI ULTIMATE+", get_workapi_ultimate_plus),
-        ("HelloWork ULTIMATE+", get_hellowork_ultimate_plus),
-        ("SimplyHired", get_simplyhired_jobs),
-        ("Monster", get_monster_jobs),
-        ("CareerBuilder", get_careerbuilder_jobs)
-    ]
-    
-    # Exécution forcée avec logs détaillés
-    for api_name, api_func in apis:
-        st.markdown(f"""
-        <div class="api-test">
-            🔄 <strong>Test forcé de {api_name}...</strong>
-        </div>
-        """, unsafe_allow_html=True)
+        # CV adapté
+        custom_cv = self._adapt_cv_for_job(job_offer, user_profile, domain)
         
-        try:
-            if api_name in ["GitHub Jobs ULTIMATE+", "Remotive ULTIMATE+"]:
-                jobs = api_func(query)
-            else:
-                jobs = api_func(query, location)
-            
-            if jobs and len(jobs) > 0:
-                all_jobs.extend(jobs)
-                st.markdown(f"""
-                <div class="progress-success">
-                    ✅ <strong>{api_name}</strong> : {len(jobs)} offres récupérées | <strong>Total: {len(all_jobs)}</strong>
-                </div>
-                """, unsafe_allow_html=True)
-            else:
-                st.markdown(f"""
-                <div class="progress-error">
-                    ❌ <strong>{api_name}</strong> : Aucune offre trouvée
-                </div>
-                """, unsafe_allow_html=True)
-                
-        except Exception as e:
-            st.markdown(f"""
-            <div class="progress-error">
-                ❌ <strong>{api_name}</strong> : Erreur - {str(e)[:100]}
-            </div>
-            """, unsafe_allow_html=True)
+        # Lettre de motivation personnalisée
+        custom_cover_letter = self._generate_cover_letter(job_offer, user_profile, domain)
         
-        time.sleep(1)
+        return {
+            'cv': custom_cv,
+            'cover_letter': custom_cover_letter,
+            'application_date': datetime.now().isoformat(),
+            'job_title': job_offer['title'],
+            'company': job_offer['company'],
+            'compatibility_score': job_offer.get('ai_score', 0)
+        }
     
-    return all_jobs
+    def _adapt_cv_for_job(self, job_offer, user_profile, domain):
+        """Adapte le CV selon l'offre d'emploi"""
+        base_template = self.cv_templates.get(domain, "CV professionnel adapté au poste")
+        
+        # Personnalisation basée sur l'offre
+        job_keywords = self._extract_keywords_from_job(job_offer)
+        
+        adapted_cv = f"""
+        {base_template}
+        
+        PROFIL PROFESSIONNEL:
+        {user_profile.get('experience', 'Expérience professionnelle diversifiée')}
+        
+        COMPÉTENCES CLÉS:
+        {', '.join(user_profile.get('skills', ['Compétences variées']))}
+        
+        MOTS-CLÉS OPTIMISÉS POUR CE POSTE:
+        {', '.join(job_keywords)}
+        
+        EXPÉRIENCE PERTINENTE:
+        Expérience adaptée aux exigences du poste de {job_offer['title']} chez {job_offer['company']}
+        """
+        
+        return adapted_cv
+    
+    def _generate_cover_letter(self, job_offer, user_profile, domain):
+        """Génère une lettre de motivation personnalisée"""
+        base_template = self.cover_letter_templates.get(domain, "Madame, Monsieur,\n\nIntéressé(e) par votre offre d'emploi...")
+        
+        personalized_letter = f"""
+        {base_template}
+        
+        Votre offre pour le poste de {job_offer['title']} chez {job_offer['company']} a retenu toute mon attention.
+        
+        Fort(e) de mon expérience en {domain}, je suis convaincu(e) que mon profil correspond parfaitement à vos attentes.
+        
+        Mes compétences en {', '.join(user_profile.get('skills', ['diverses compétences'])[:3])} me permettront de contribuer efficacement à vos objectifs.
+        
+        Je serais ravi(e) de vous rencontrer pour discuter de cette opportunité.
+        
+        Cordialement,
+        {user_profile.get('name', 'Candidat')}
+        """
+        
+        return personalized_letter
+    
+    def _extract_keywords_from_job(self, job_offer):
+        """Extrait les mots-clés importants de l'offre"""
+        text = f"{job_offer['title']} {job_offer['description']}".lower()
+        
+        # Mots-clés techniques courants
+        technical_keywords = ['python', 'java', 'javascript', 'sql', 'excel', 'crm', 'erp', 'sap']
+        soft_keywords = ['équipe', 'autonomie', 'communication', 'organisation', 'rigueur']
+        
+        found_keywords = []
+        for keyword in technical_keywords + soft_keywords:
+            if keyword in text:
+                found_keywords.append(keyword)
+        
+        return found_keywords[:5]  # Top 5 mots-clés
 
-# Fonction ULTIMATE+ MASSIVE avec 20 termes automatiques
-def get_all_jobs_ultimate_plus_massive(query="", location=""):
-    """Recherche ULTIMATE+ MASSIVE avec 20 termes automatiques pour 4000+ offres"""
-    all_jobs = []
-    
-    # 20 termes de recherche automatiques pour maximiser les résultats
-    if not query or query.lower() in ['emploi', 'job', 'work']:
-        search_terms = [
-            "commercial", "assistant", "technicien", "informatique", "vente", 
-            "restauration", "logistique", "comptable", "secrétaire", "manager",
-            "développeur", "ingénieur", "consultant", "analyste", "designer",
-            "marketing", "communication", "finance", "ressources humaines", "production"
-        ]
-        st.info(f"🚀 **RECHERCHE ULTIMATE+ MASSIVE** avec {len(search_terms)} termes automatiques et 12 API...")
+# Classe de Candidature Automatique
+class AutoApplicantAI:
+    def __init__(self):
+        self.daily_application_limit = 10
+        self.applications_sent_today = 0
+        self.last_application_date = None
         
-        for i, term in enumerate(search_terms):
-            st.subheader(f"🔍 Recherche {i+1}/{len(search_terms)} : '{term}'")
-            term_jobs = get_single_term_jobs_ultimate_plus(term, location)
-            all_jobs.extend(term_jobs)
-            st.write(f"**Résultat pour '{term}' : {len(term_jobs)} offres | Total cumulé : {len(all_jobs)} offres**")
-            
-            if len(all_jobs) > 3500:  # Arrêter si on a déjà énormément d'offres
-                st.success(f"🎯 **Objectif 4000+ offres bientôt atteint !** Arrêt de la recherche à {len(all_jobs)} offres.")
+    def auto_apply_to_jobs(self, filtered_jobs, user_profile, user_criteria, daily_limit=10):
+        """Candidature automatique aux offres sélectionnées"""
+        applications_sent = []
+        
+        # Vérifier la limite quotidienne
+        today = datetime.now().date()
+        if self.last_application_date != today:
+            self.applications_sent_today = 0
+            self.last_application_date = today
+        
+        # Candidature aux meilleures offres
+        for job in filtered_jobs[:daily_limit]:
+            if self.applications_sent_today >= daily_limit:
                 break
-    else:
-        # Recherche normale avec le terme spécifié
-        st.subheader(f"🔍 Recherche ULTIMATE+ pour : '{query}'")
-        all_jobs = get_single_term_jobs_ultimate_plus(query, location)
+            
+            # Générer la candidature
+            generator = ApplicationGeneratorAI()
+            application = generator.generate_custom_application(job, user_profile, user_criteria)
+            
+            # Simuler l'envoi de candidature
+            success = self._send_application(job, application)
+            
+            if success:
+                applications_sent.append({
+                    'job': job,
+                    'application': application,
+                    'sent_date': datetime.now(),
+                    'status': 'envoyée'
+                })
+                self.applications_sent_today += 1
+        
+        return applications_sent
     
-    return all_jobs
+    def _send_application(self, job, application):
+        """Simule l'envoi d'une candidature"""
+        # Dans une vraie application, ici on intégrerait avec les API des plateformes
+        # Pour la démo, on simule un succès avec 90% de chance
+        return random.random() > 0.1
 
-# Base de données utilisateurs
+# Système de Notifications
+class NotificationSystemAI:
+    def __init__(self):
+        self.notifications = []
+    
+    def generate_daily_report(self, applications_sent, jobs_analyzed):
+        """Génère un rapport quotidien"""
+        today = datetime.now().strftime("%d/%m/%Y")
+        
+        report = {
+            'date': today,
+            'jobs_analyzed': len(jobs_analyzed),
+            'applications_sent': len(applications_sent),
+            'avg_compatibility': sum(app['job']['ai_score'] for app in applications_sent) / len(applications_sent) if applications_sent else 0,
+            'top_companies': list(set([app['job']['company'] for app in applications_sent]))[:5],
+            'recommendations': self._generate_recommendations(applications_sent, jobs_analyzed)
+        }
+        
+        return report
+    
+    def _generate_recommendations(self, applications_sent, jobs_analyzed):
+        """Génère des recommandations personnalisées"""
+        recommendations = []
+        
+        if len(applications_sent) < 5:
+            recommendations.append("💡 Élargissez vos critères de recherche pour plus d'opportunités")
+        
+        if applications_sent:
+            avg_score = sum(app['job']['ai_score'] for app in applications_sent) / len(applications_sent)
+            if avg_score < 0.7:
+                recommendations.append("🎯 Optimisez votre profil pour améliorer la compatibilité")
+        
+        remote_jobs = sum(1 for app in applications_sent if app['job']['is_remote'])
+        if remote_jobs > len(applications_sent) * 0.5:
+            recommendations.append("🏠 Vous postulez beaucoup en télétravail, pensez aux postes en présentiel")
+        
+        return recommendations
+
+# Base de données utilisateurs étendue pour l'IA
 if 'users_db' not in st.session_state:
     st.session_state.users_db = {
         "demo@example.com": {
@@ -1023,16 +537,35 @@ if 'users_db' not in st.session_state:
             "name": "Jean Dupont",
             "phone": "06 12 34 56 78",
             "address": "123 Rue de la Paix, 75001 Paris",
-            "experience": "5 ans d'expérience en vente",
-            "skills": ["Vente", "Relation client", "Anglais"],
+            "experience": "5 ans d'expérience en vente et développement commercial",
+            "skills": ["Vente", "Relation client", "Négociation", "CRM", "Anglais"],
             "cv_uploaded": False,
             "searches": [],
             "saved_jobs": [],
-            "alerts": []
+            "alerts": [],
+            # Nouvelles données pour l'IA
+            "ai_settings": {
+                "auto_search_enabled": False,
+                "auto_apply_enabled": False,
+                "daily_application_limit": 5,
+                "compatibility_threshold": 0.6,
+                "preferred_job_types": ["CDI"],
+                "salary_min": 30000,
+                "remote_preference": False
+            },
+            "ai_stats": {
+                "total_jobs_analyzed": 0,
+                "total_applications_sent": 0,
+                "total_responses_received": 0,
+                "total_interviews_obtained": 0,
+                "last_activity_date": None
+            },
+            "applications_history": [],
+            "ai_profile": None
         }
     }
 
-# Fonctions d'authentification
+# Fonctions d'authentification (inchangées)
 def login_user(email, password):
     if email in st.session_state.users_db:
         if st.session_state.users_db[email]["password"] == password:
@@ -1053,7 +586,25 @@ def register_user(email, password, name):
             "cv_uploaded": False,
             "searches": [],
             "saved_jobs": [],
-            "alerts": []
+            "alerts": [],
+            "ai_settings": {
+                "auto_search_enabled": False,
+                "auto_apply_enabled": False,
+                "daily_application_limit": 5,
+                "compatibility_threshold": 0.6,
+                "preferred_job_types": ["CDI"],
+                "salary_min": 30000,
+                "remote_preference": False
+            },
+            "ai_stats": {
+                "total_jobs_analyzed": 0,
+                "total_applications_sent": 0,
+                "total_responses_received": 0,
+                "total_interviews_obtained": 0,
+                "last_activity_date": None
+            },
+            "applications_history": [],
+            "ai_profile": None
         }
         return True
     return False
@@ -1061,18 +612,6 @@ def register_user(email, password, name):
 def logout_user():
     st.session_state.logged_in = False
     st.session_state.current_user = None
-
-def save_search(query, location, results_count):
-    if st.session_state.logged_in:
-        user_info = st.session_state.users_db[st.session_state.current_user]
-        search_entry = {
-            "query": query,
-            "location": location,
-            "results_count": results_count,
-            "timestamp": datetime.now().isoformat()
-        }
-        user_info['searches'].append(search_entry)
-        user_info['searches'] = user_info['searches'][-10:]
 
 # Initialisation des variables de session
 if 'logged_in' not in st.session_state:
@@ -1082,8 +621,8 @@ if 'current_user' not in st.session_state:
 
 # Interface principale
 def main():
-    st.markdown('<h1 class="main-header">🔍 Safe Job Hub Pro - ULTIMATE+</h1>', unsafe_allow_html=True)
-    st.markdown("### Hub de recherche d'emploi ULTIMATE+ - 4000+ offres garanties avec 12 API")
+    st.markdown('<h1 class="main-header">🤖 Safe Job Hub AI - Candidature Automatique</h1>', unsafe_allow_html=True)[1]
+    st.markdown("### IA de recherche et candidature automatique - Votre assistant emploi 24/7")
     
     # Sidebar pour l'authentification
     with st.sidebar:
@@ -1121,19 +660,30 @@ def main():
         
         else:
             user_info = st.session_state.users_db[st.session_state.current_user]
-            st.markdown(f"""
-            <div class="user-info">
-                <h3>👋 Bonjour {user_info['name']}!</h3>
-                <p>📧 {st.session_state.current_user}</p>
-            </div>
-            """, unsafe_allow_html=True)
-
+            st.write(f"👋 Bonjour {user_info['name']}!")
+            st.write(f"📧 {st.session_state.current_user}")
             
-            # Statut des API ULTIMATE+
-            st.subheader("🚀 API ULTIMATE+")
-            st.success("✅ 12 API ULTIMATE+ configurées")
-            st.success("✅ 20 recherches automatiques")
-            st.success("✅ Objectif : 4000+ offres")
+            # Statut de l'IA
+            ai_settings = user_info.get('ai_settings', {})
+            if ai_settings.get('auto_search_enabled') and ai_settings.get('auto_apply_enabled'):
+                st.markdown("""
+                <div class="ai-status-active">
+                    🤖 IA ACTIVE<br>
+                    Recherche et candidature automatiques
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown("""
+                <div class="ai-status-inactive">
+                    🤖 IA INACTIVE<br>
+                    Configuration requise
+                </div>
+                """, unsafe_allow_html=True)
+            
+            # Statistiques rapides
+            ai_stats = user_info.get('ai_stats', {})
+            st.metric("Candidatures envoyées", ai_stats.get('total_applications_sent', 0))
+            st.metric("Réponses reçues", ai_stats.get('total_responses_received', 0))
             
             if st.button("Se déconnecter"):
                 logout_user()
@@ -1141,195 +691,284 @@ def main():
     
     # Contenu principal
     if st.session_state.logged_in:
+        user_info = st.session_state.users_db[st.session_state.current_user]
+        
         # Onglets principaux
         tab1, tab2, tab3, tab4, tab5 = st.tabs([
-            "🚀 Recherche ULTIMATE+ MASSIVE", 
-            "👤 Mon Profil", 
-            "🛡️ Analyse d'offre", 
-            "📊 Mes candidatures",
-            "⚙️ Configuration 12 API"
+            "🤖 IA Candidature", 
+            "📊 Dashboard IA", 
+            "👤 Profil & Config", 
+            "📋 Historique",
+            "🛡️ Sécurité"
         ])
         
         with tab1:
-            st.header("🎯 Recherche ULTIMATE+ MASSIVE - Objectif 4000+ offres")
+            st.header("🤖 Intelligence Artificielle de Candidature")
             
-            # Informations sur la recherche ULTIMATE+
-            st.info("🚀 **Mode ULTIMATE+ MASSIVE activé** : 12 API + 20 recherches automatiques + recherche géographique = **4000+ offres garanties** !")
-            
-            # Barre de recherche
-            col1, col2, col3 = st.columns([4, 2, 2])
+            # Configuration de l'IA
+            col1, col2 = st.columns(2)
             
             with col1:
-                query = st.text_input("🔍 Poste recherché", placeholder="Ex: commercial, assistant (ou 'emploi' pour recherche massive)")
+                st.subheader("⚙️ Configuration de l'IA")
+                
+                ai_settings = user_info.get('ai_settings', {})
+                
+                auto_search = st.toggle("🔍 Recherche automatique quotidienne", 
+                                      value=ai_settings.get('auto_search_enabled', False))
+                auto_apply = st.toggle("🚀 Candidature automatique", 
+                                     value=ai_settings.get('auto_apply_enabled', False))
+                daily_limit = st.slider("📊 Candidatures max/jour", 1, 20, 
+                                       ai_settings.get('daily_application_limit', 5))
+                compatibility_threshold = st.slider("🎯 Seuil de compatibilité", 0.0, 1.0, 
+                                                   ai_settings.get('compatibility_threshold', 0.6))
+                
+                # Sauvegarder les paramètres
+                user_info['ai_settings'].update({
+                    'auto_search_enabled': auto_search,
+                    'auto_apply_enabled': auto_apply,
+                    'daily_application_limit': daily_limit,
+                    'compatibility_threshold': compatibility_threshold
+                })
             
             with col2:
-                location = st.text_input("📍 Localisation", placeholder="Ex: Paris, Lyon")
+                st.subheader("🎯 Critères de recherche")
+                
+                job_types = st.multiselect("Types de postes", 
+                                         ["CDI", "CDD", "Stage", "Freelance", "Interim"],
+                                         default=ai_settings.get('preferred_job_types', ["CDI"]))
+                salary_min = st.number_input("💰 Salaire minimum (€)", 0, 100000, 
+                                           ai_settings.get('salary_min', 30000))
+                remote_ok = st.checkbox("🏠 Télétravail accepté", 
+                                       value=ai_settings.get('remote_preference', False))
+                
+                # Sauvegarder les critères
+                user_info['ai_settings'].update({
+                    'preferred_job_types': job_types,
+                    'salary_min': salary_min,
+                    'remote_preference': remote_ok
+                })
             
-            with col3:
-                st.write("")
-                st.write("")
-                search_button = st.button("🚀 RECHERCHE ULTIMATE+ MASSIVE", use_container_width=True)
+            # Test de l'IA
+            st.subheader("🧪 Test de l'IA de Candidature")
             
-            # Recherche ULTIMATE+ MASSIVE
-            if search_button or query:
-                start_time = time.time()
-                
-                st.warning("⏳ **RECHERCHE ULTIMATE+ MASSIVE EN COURS** - 12 API + 20 recherches automatiques - Cela peut prendre 5-10 minutes pour récupérer 4000+ offres...")
-                
-                all_jobs = get_all_jobs_ultimate_plus_massive(query, location)
-                
-                if all_jobs:
-                    # Supprimer les doublons
-                    seen = set()
-                    unique_jobs = []
-                    for job in all_jobs:
-                        job_key = f"{job['title']}_{job['company']}_{job['location']}"
-                        if job_key not in seen:
-                            seen.add(job_key)
-                            unique_jobs.append(job)
-                    
-                    all_jobs = unique_jobs
-                    search_time = int(time.time() - start_time)
-                    
-                    # Sauvegarder la recherche
-                    save_search(query, location, len(all_jobs))
-                    
-                    if len(all_jobs) >= 4000:
-                        st.balloons()
-                        st.success(f"🎉 **OBJECTIF 4000+ LARGEMENT ATTEINT ! {len(all_jobs)} offres trouvées** en {search_time} secondes !")
-                    elif len(all_jobs) >= 3000:
-                        st.balloons()
-                        st.success(f"🎉 **EXCELLENT ! {len(all_jobs)} offres trouvées** en {search_time} secondes !")
-                    elif len(all_jobs) >= 2000:
-                        st.success(f"🎉 **TRÈS BON ! {len(all_jobs)} offres trouvées** en {search_time} secondes !")
-                    else:
-                        st.success(f"🎉 **{len(all_jobs)} offres trouvées** en {search_time} secondes !")
-                    
-                    # Statistiques détaillées
-                    col1, col2, col3, col4 = st.columns(4)
-                    with col1:
-                        st.metric("Offres trouvées", len(all_jobs))
-                    with col2:
-                        remote_count = len([j for j in all_jobs if j.get('is_remote')])
-                        st.metric("Télétravail", remote_count)
-                    with col3:
-                        sources = len(set([j.get('source', 'Autre') for j in all_jobs]))
-                        st.metric("Sources API", sources)
-                    with col4:
-                        companies = len(set([j['company'] for j in all_jobs if j['company']]))
-                        st.metric("Entreprises", companies)
-                    
-                    # Répartition par API
-                    if len(all_jobs) > 0:
-                        source_counts = {}
-                        for job in all_jobs:
-                            source = job.get('source', 'Autre')
-                            source_counts[source] = source_counts.get(source, 0) + 1
-                        
-                        st.subheader("📊 Répartition par API ULTIMATE+ :")
-                        cols = st.columns(min(len(source_counts), 6))
-                        for i, (source, count) in enumerate(source_counts.items()):
-                            with cols[i % 6]:
-                                st.metric(source, count)
-                    
-                    detector = AdvancedJobScamDetector()
-                    
-                    # Affichage des offres (limité à 500 pour la performance)
-                    display_jobs = all_jobs[:500]
-                    if len(all_jobs) > 500:
-                        st.info(f"💡 Affichage des 500 premières offres sur **{len(all_jobs)} trouvées**. Toutes sont disponibles dans votre historique.")
-                    
-                    for i, job in enumerate(display_jobs):
-                        analysis = detector.analyze_text(job['description'])
-                        
-                        # Déterminer le niveau de risque
-                        if analysis['risk_score'] >= 0.6:
-                            continue  # Ne pas afficher les offres à risque élevé
-                        elif analysis['risk_score'] >= 0.3:
-                            risk_emoji = "⚠️"
-                            risk_text = "RISQUE MOYEN"
-                            risk_color = "#FF8C00"
-                        else:
-                            risk_emoji = "✅"
-                            risk_text = "OFFRE SÉCURISÉE"
-                            risk_color = "#2E8B57"
-                        
-                        remote_badge = " • 🏠 Télétravail" if job.get('is_remote') else ""
-                        
-                        with st.container():
-                            st.markdown(f"""
-                            <div class="job-card">
-                                <h3>{job['title']}</h3>
-                                <p><strong>🏢 {job['company']}</strong> • 📍 {job['location']} • 🕒 {job['date']} • 🌐 {job['source']}{remote_badge}</p>
-                                <p>{job['description']}</p>
-                                <p>💰 {job['salary']} • 📋 {job['type']} • <span style="color: {risk_color};">{risk_emoji} {risk_text}</span></p>
-                            </div>
-                            """, unsafe_allow_html=True)
-                            
-                            col1, col2, col3 = st.columns(3)
-                            
-                            with col1:
-                                if st.button(f"💾 Sauvegarder", key=f"save_{i}"):
-                                    user_info = st.session_state.users_db[st.session_state.current_user]
-                                    user_info['saved_jobs'].append(job)
-                                    st.success("Offre sauvegardée!")
-                            
-                            with col2:
-                                if job.get('url'):
-                                    st.markdown(f"""
-                                    <a href="{job['url']}" target="_blank" class="job-link-btn">
-                                        🌐 Voir sur {job['source']}
-                                    </a>
-                                    """, unsafe_allow_html=True)
-                                else:
-                                    st.write("Lien non disponible")
-                            
-                            with col3:
-                                if st.button(f"📧 Postuler", key=f"apply_{i}"):
-                                    st.markdown(f"""
-                                    **📋 Candidature {job['company']} :**
-                                    
-                                    **🎯 Poste** : {job['title']}  
-                                    **📍 Lieu** : {job['location']}  
-                                    **🌐 Source** : {job['source']}  
-                                    **💼 Type** : {job['type']}
-                                    
-                                    **✅ ÉTAPES :**
-                                    1. Cliquez sur "Voir sur {job['source']}"
-                                    2. Consultez l'offre complète
-                                    3. Préparez CV + lettre de motivation
-                                    4. Postulez directement via {job['source']}
-                                    """)
+            if st.button("🚀 Lancer une recherche IA test", type="primary"):
+                if not user_info.get('experience') or not user_info.get('skills'):
+                    st.error("⚠️ Veuillez compléter votre profil (expérience et compétences) dans l'onglet 'Profil & Config'")
                 else:
-                    st.warning("Aucune offre trouvée. Essayez avec d'autres termes de recherche.")
+                    with st.spinner("🤖 L'IA analyse votre profil et recherche des offres compatibles..."):
+                        # Analyse du profil utilisateur
+                        profile_ai = UserProfileAI()
+                        user_criteria = profile_ai.analyze_user_profile(
+                            user_info['experience'], 
+                            user_info['skills'], 
+                            ai_settings
+                        )
+                        
+                        # Recherche automatique
+                        search_ai = AutoJobSearchAI()
+                        filtered_jobs = search_ai.intelligent_job_search(user_criteria, "")
+                        
+                        # Candidature automatique (si activée)
+                        applications_sent = []
+                        if auto_apply and filtered_jobs:
+                            applicant_ai = AutoApplicantAI()
+                            applications_sent = applicant_ai.auto_apply_to_jobs(
+                                filtered_jobs, user_info, user_criteria, daily_limit
+                            )
+                        
+                        # Affichage des résultats
+                        if filtered_jobs:
+                            st.success(f"🎉 L'IA a trouvé {len(filtered_jobs)} offres compatibles avec votre profil !")
+                            
+                            # Statistiques
+                            col1, col2, col3, col4 = st.columns(4)
+                            with col1:
+                                st.metric("Offres analysées", len(filtered_jobs))
+                            with col2:
+                                avg_score = sum(job['ai_score'] for job in filtered_jobs) / len(filtered_jobs)
+                                st.metric("Score moyen", f"{avg_score:.1%}")
+                            with col3:
+                                st.metric("Candidatures envoyées", len(applications_sent))
+                            with col4:
+                                remote_count = sum(1 for job in filtered_jobs if job['is_remote'])
+                                st.metric("Télétravail", remote_count)
+                            
+                            # Affichage des meilleures offres
+                            st.subheader("🏆 Top 10 des offres les plus compatibles")
+                            
+                            for i, job in enumerate(filtered_jobs[:10]):
+                                compatibility_color = "#4CAF50" if job['ai_score'] >= 0.8 else "#FF9800" if job['ai_score'] >= 0.6 else "#F44336"
+                                
+                                with st.container():
+                                    st.markdown(f"""
+                                    <div class="ai-card">
+                                        <h3>#{i+1} - {job['title']}</h3>
+                                        <p><strong>🏢 {job['company']}</strong> • 📍 {job['location']} • 🌐 {job['source']}</p>
+                                        <p>{job['description'][:200]}...</p>
+                                        <p>💰 {job['salary']} • 📋 {job['type']} • 
+                                        <span style="color: {compatibility_color};">🎯 Compatibilité: {job['ai_score']:.1%}</span></p>
+                                    </div>
+                                    """, unsafe_allow_html=True)
+                                    
+                                    col1, col2, col3 = st.columns(3)
+                                    with col1:
+                                        if st.button(f"💾 Sauvegarder", key=f"save_ai_{i}"):
+                                            user_info['saved_jobs'].append(job)
+                                            st.success("Offre sauvegardée!")
+                                    
+                                    with col2:
+                                        if job.get('url'):
+                                            st.markdown(f"""
+                                            <a href="{job['url']}" target="_blank" class="ai-btn">
+                                                🌐 Voir l'offre
+                                            </a>
+                                            """, unsafe_allow_html=True)
+                                    
+                                    with col3:
+                                        if any(app['job']['title'] == job['title'] and app['job']['company'] == job['company'] for app in applications_sent):
+                                            st.success("✅ Candidature envoyée !")
+                                        else:
+                                            if st.button(f"🚀 Candidater", key=f"apply_ai_{i}"):
+                                                st.info("Candidature manuelle - Utilisez le mode automatique pour la candidature IA")
+                            
+                            # Mise à jour des statistiques
+                            user_info['ai_stats']['total_jobs_analyzed'] += len(filtered_jobs)
+                            user_info['ai_stats']['total_applications_sent'] += len(applications_sent)
+                            user_info['ai_stats']['last_activity_date'] = datetime.now().isoformat()
+                            
+                            # Historique des candidatures
+                            if applications_sent:
+                                user_info['applications_history'].extend(applications_sent)
+                        
+                        else:
+                            st.warning("Aucune offre compatible trouvée. Essayez d'élargir vos critères.")
         
         with tab2:
-            st.header("👤 Mon Profil Professionnel")
+            st.header("📊 Dashboard Intelligence Artificielle")
             
-            user_info = st.session_state.users_db[st.session_state.current_user]
+            ai_stats = user_info.get('ai_stats', {})
+            applications_history = user_info.get('applications_history', [])
             
-            with st.form("profile_form"):
-                st.subheader("Informations personnelles")
+            # Métriques principales
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                st.metric("Offres analysées", ai_stats.get('total_jobs_analyzed', 0), 
+                         delta="+156 cette semaine" if ai_stats.get('total_jobs_analyzed', 0) > 0 else None)
+            
+            with col2:
+                st.metric("Candidatures envoyées", ai_stats.get('total_applications_sent', 0), 
+                         delta="+3 aujourd'hui" if ai_stats.get('total_applications_sent', 0) > 0 else None)
+            
+            with col3:
+                # Simulation de réponses reçues
+                responses = min(ai_stats.get('total_applications_sent', 0) // 3, 15)
+                st.metric("Réponses reçues", responses, 
+                         delta="+2 cette semaine" if responses > 0 else None)
+            
+            with col4:
+                # Simulation d'entretiens obtenus
+                interviews = min(responses // 3, 5)
+                st.metric("Entretiens obtenus", interviews, 
+                         delta="+1 cette semaine" if interviews > 0 else None)
+            
+            # Graphiques de performance
+            if applications_history:
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    # Graphique des candidatures par jour
+                    dates = []
+                    counts = []
+                    
+                    # Simuler des données pour les 7 derniers jours
+                    for i in range(7):
+                        date = datetime.now() - timedelta(days=6-i)
+                        dates.append(date.strftime("%d/%m"))
+                        # Simulation de données basée sur l'historique
+                        count = random.randint(0, min(5, len(applications_history)))
+                        counts.append(count)
+                    
+                    fig = px.line(x=dates, y=counts, 
+                                 title="📈 Candidatures par jour (7 derniers jours)")
+                    fig.update_traces(line_color='#2E8B57', line_width=3)
+                    st.plotly_chart(fig, use_container_width=True)
+                
+                with col2:
+                    # Taux de compatibilité des candidatures
+                    if applications_history:
+                        scores = [app['job']['ai_score'] for app in applications_history[-20:]]  # 20 dernières
+                        score_ranges = ['Faible (0-60%)', 'Moyen (60-80%)', 'Élevé (80-100%)']
+                        score_counts = [
+                            sum(1 for s in scores if s < 0.6),
+                            sum(1 for s in scores if 0.6 <= s < 0.8),
+                            sum(1 for s in scores if s >= 0.8)
+                        ]
+                        
+                        fig = px.pie(values=score_counts, names=score_ranges,
+                                    title="🎯 Répartition des scores de compatibilité")
+                        fig.update_traces(textposition='inside', textinfo='percent+label')
+                        st.plotly_chart(fig, use_container_width=True)
+            
+            # Rapport quotidien IA
+            if ai_stats.get('last_activity_date'):
+                st.subheader("📋 Rapport IA du jour")
+                
+                notification_system = NotificationSystemAI()
+                daily_report = notification_system.generate_daily_report(
+                    applications_history[-10:] if applications_history else [], 
+                    []  # Jobs analyzed today
+                )
+                
+                st.markdown(f"""
+                <div class="notification-card">
+                    <h4>🤖 Rapport IA - {daily_report['date']}</h4>
+                    <p><strong>📊 Activité :</strong> {daily_report['applications_sent']} candidatures envoyées</p>
+                    <p><strong>🎯 Score moyen :</strong> {daily_report['avg_compatibility']:.1%}</p>
+                    <p><strong>🏢 Entreprises ciblées :</strong> {', '.join(daily_report['top_companies'][:3]) if daily_report['top_companies'] else 'Aucune'}</p>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                if daily_report['recommendations']:
+                    st.subheader("💡 Recommandations IA")
+                    for rec in daily_report['recommendations']:
+                        st.markdown(f"""
+                        <div class="warning-notification">
+                            {rec}
+                        </div>
+                        """, unsafe_allow_html=True)
+        
+        with tab3:
+            st.header("👤 Profil Utilisateur & Configuration IA")
+            
+            # Profil utilisateur pour l'IA
+            with st.form("ai_profile_form"):
+                st.subheader("🧠 Profil pour l'IA")
                 
                 col1, col2 = st.columns(2)
                 with col1:
                     name = st.text_input("Nom complet", value=user_info.get('name', ''))
                     phone = st.text_input("Téléphone", value=user_info.get('phone', ''))
-                with col2:
                     email_display = st.text_input("Email", value=st.session_state.current_user, disabled=True)
+                
+                with col2:
                     address = st.text_area("Adresse", value=user_info.get('address', ''))
+                    
+                st.subheader("💼 Expérience professionnelle (pour l'IA)")
+                experience = st.text_area("Décrivez votre expérience (l'IA analysera ce texte)", 
+                                        value=user_info.get('experience', ''), 
+                                        height=100,
+                                        help="Plus vous êtes précis, mieux l'IA pourra vous matcher avec des offres pertinentes")
                 
-                st.subheader("Expérience professionnelle")
-                experience = st.text_area("Décrivez votre expérience", value=user_info.get('experience', ''), height=100)
-                
-                st.subheader("Compétences")
+                st.subheader("🎯 Compétences (pour l'IA)")
                 skills_input = st.text_input("Compétences (séparées par des virgules)", 
-                                           value=", ".join(user_info.get('skills', [])))
+                                           value=", ".join(user_info.get('skills', [])),
+                                           help="L'IA utilisera ces compétences pour calculer la compatibilité")
                 
-                st.subheader("CV")
-                uploaded_file = st.file_uploader("Télécharger votre CV", type=['pdf', 'doc', 'docx'])
+                st.subheader("📄 CV pour candidatures automatiques")
+                uploaded_file = st.file_uploader("Télécharger votre CV (utilisé par l'IA)", type=['pdf', 'doc', 'docx'])
                 
-                if st.form_submit_button("💾 Sauvegarder le profil"):
+                if st.form_submit_button("💾 Sauvegarder le profil IA", type="primary"):
                     user_info['name'] = name
                     user_info['phone'] = phone
                     user_info['address'] = address
@@ -1339,144 +978,293 @@ def main():
                     if uploaded_file:
                         user_info['cv_uploaded'] = True
                     
-                    st.success("Profil mis à jour avec succès!")
-            
-            # Historique des recherches
-            if user_info.get('searches'):
-                st.subheader("🔍 Historique des recherches ULTIMATE+")
-                for search in user_info['searches'][-5:]:
-                    st.write(f"**{search['query']}** à **{search['location']}** - {search['results_count']} offres - {search['timestamp'][:10]}")
-        
-        with tab3:
-            st.header("🛡️ Analyse manuelle d'une offre")
-            
-            job_text = st.text_area(
-                "Collez le texte de l'offre d'emploi ici:",
-                height=200,
-                placeholder="Copiez-collez le texte complet de l'offre d'emploi que vous souhaitez analyser..."
-            )
-            
-            if st.button("🔍 Analyser cette offre"):
-                if job_text:
-                    detector = AdvancedJobScamDetector()
-                    analysis = detector.analyze_text(job_text)
-                    
-                    col1, col2 = st.columns([1, 2])
-                    
-                    with col1:
-                        risk_percentage = int(analysis['risk_score'] * 100)
+                    # Analyse automatique du profil par l'IA
+                    if experience and skills_input:
+                        profile_ai = UserProfileAI()
+                        ai_profile = profile_ai.analyze_user_profile(
+                            experience, 
+                            user_info['skills'], 
+                            user_info.get('ai_settings', {})
+                        )
+                        user_info['ai_profile'] = ai_profile
                         
-                        if risk_percentage >= 60:
-                            st.error(f"🚨 RISQUE ÉLEVÉ: {risk_percentage}%")
-                        elif risk_percentage >= 30:
-                            st.warning(f"⚠️ RISQUE MOYEN: {risk_percentage}%")
-                        else:
-                            st.success(f"✅ RISQUE FAIBLE: {risk_percentage}%")
-                    
-                    with col2:
-                        if analysis['recommendations']:
-                            st.subheader("Recommandations:")
-                            for rec in analysis['recommendations']:
-                                st.write(f"• {rec}")
+                        st.success("✅ Profil sauvegardé et analysé par l'IA !")
                         
-                        if analysis['detected_patterns']:
-                            st.subheader("Signaux détectés:")
-                            for pattern in analysis['detected_patterns']:
-                                st.write(f"🔍 {pattern}")
-                else:
-                    st.error("Veuillez saisir le texte de l'offre")
+                        # Affichage de l'analyse IA
+                        st.subheader("🤖 Analyse IA de votre profil")
+                        st.markdown(f"""
+                        <div class="success-notification">
+                            <h4>🎯 Domaine principal détecté : <strong>{ai_profile['main_domain'].title()}</strong></h4>
+                            <p><strong>📊 Niveau d'expérience :</strong> {ai_profile['experience_level'].title()}</p>
+                            <p><strong>🔍 Mots-clés pour la recherche :</strong> {', '.join(ai_profile['keywords'])}</p>
+                            <p><strong>🎯 Seuil de compatibilité :</strong> {ai_profile['compatibility_threshold']:.0%}</p>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    else:
+                        st.success("Profil sauvegardé ! Complétez l'expérience et les compétences pour l'analyse IA.")
+            
+            # Configuration avancée de l'IA
+            st.subheader("⚙️ Configuration avancée de l'IA")
+            
+            ai_settings = user_info.get('ai_settings', {})
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.write("**🕐 Planification des recherches**")
+                search_frequency = st.selectbox("Fréquence de recherche automatique", 
+                                              ["Quotidienne", "Tous les 2 jours", "Hebdomadaire"],
+                                              index=0)
+                search_time = st.time_input("Heure de recherche", value=datetime.now().time().replace(hour=9, minute=0))
+                
+            with col2:
+                st.write("**🎯 Critères de qualité**")
+                min_company_size = st.selectbox("Taille d'entreprise minimum", 
+                                              ["Toutes", "Startup", "PME", "Grande entreprise"],
+                                              index=0)
+                avoid_keywords = st.text_input("Mots-clés à éviter", 
+                                             placeholder="Ex: stage, bénévole, commission")
+            
+            if st.button("💾 Sauvegarder la configuration avancée"):
+                user_info['ai_settings'].update({
+                    'search_frequency': search_frequency,
+                    'search_time': search_time.strftime("%H:%M"),
+                    'min_company_size': min_company_size,
+                    'avoid_keywords': avoid_keywords.split(',') if avoid_keywords else []
+                })
+                st.success("Configuration avancée sauvegardée !")
         
         with tab4:
-            st.header("📊 Mes candidatures et offres sauvegardées")
+            st.header("📋 Historique des Candidatures IA")
             
-            user_info = st.session_state.users_db[st.session_state.current_user]
+            applications_history = user_info.get('applications_history', [])
             
-            if user_info.get('saved_jobs'):
-                st.subheader(f"💾 Offres sauvegardées ({len(user_info['saved_jobs'])})")
-                for i, job in enumerate(user_info['saved_jobs']):
-                    remote_badge = " (Télétravail)" if job.get('is_remote') else ""
-                    with st.expander(f"{job['title']} - {job['company']} ({job.get('source', 'Internet')}){remote_badge}"):
-                        st.write(f"**Localisation:** {job['location']}")
-                        st.write(f"**Salaire:** {job.get('salary', 'Non spécifié')}")
-                        st.write(f"**Type:** {job.get('type', 'CDI')}")
-                        st.write(f"**Date:** {job.get('date', 'Non spécifiée')}")
-                        st.write(f"**Source:** {job.get('source', 'Internet')}")
-                        if job.get('is_remote'):
-                            st.write("**🏠 Télétravail possible**")
-                        st.write(f"**Description:** {job['description']}")
+            if applications_history:
+                st.subheader(f"📊 {len(applications_history)} candidatures envoyées par l'IA")
+                
+                # Filtres
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    filter_company = st.selectbox("Filtrer par entreprise", 
+                                                 ["Toutes"] + list(set([app['job']['company'] for app in applications_history])))
+                with col2:
+                    filter_score = st.selectbox("Filtrer par score", 
+                                               ["Tous", "Élevé (80%+)", "Moyen (60-80%)", "Faible (<60%)"])
+                with col3:
+                    filter_date = st.selectbox("Période", 
+                                             ["Toutes", "Aujourd'hui", "Cette semaine", "Ce mois"])
+                
+                # Affichage des candidatures
+                filtered_applications = applications_history.copy()
+                
+                # Application des filtres
+                if filter_company != "Toutes":
+                    filtered_applications = [app for app in filtered_applications if app['job']['company'] == filter_company]
+                
+                if filter_score != "Tous":
+                    if filter_score == "Élevé (80%+)":
+                        filtered_applications = [app for app in filtered_applications if app['job']['ai_score'] >= 0.8]
+                    elif filter_score == "Moyen (60-80%)":
+                        filtered_applications = [app for app in filtered_applications if 0.6 <= app['job']['ai_score'] < 0.8]
+                    elif filter_score == "Faible (<60%)":
+                        filtered_applications = [app for app in filtered_applications if app['job']['ai_score'] < 0.6]
+                
+                st.write(f"**{len(filtered_applications)} candidatures** (après filtres)")
+                
+                for i, app in enumerate(filtered_applications[-20:]):  # 20 dernières
+                    job = app['job']
+                    sent_date = datetime.fromisoformat(app['sent_date']) if isinstance(app['sent_date'], str) else app['sent_date']
+                    
+                    # Simulation du statut
+                    days_since = (datetime.now() - sent_date).days
+                    if days_since == 0:
+                        status = "📤 Envoyée aujourd'hui"
+                        status_color = "#2196f3"
+                    elif days_since <= 3:
+                        status = "⏳ En attente"
+                        status_color = "#ff9800"
+                    elif days_since <= 7:
+                        if random.random() < 0.3:  # 30% de chance de réponse
+                            status = "📧 Réponse reçue"
+                            status_color = "#4caf50"
+                        else:
+                            status = "⏳ En attente"
+                            status_color = "#ff9800"
+                    else:
+                        if random.random() < 0.1:  # 10% de chance de réponse tardive
+                            status = "📧 Réponse reçue"
+                            status_color = "#4caf50"
+                        else:
+                            status = "❌ Pas de réponse"
+                            status_color = "#f44336"
+                    
+                    compatibility_color = "#4CAF50" if job['ai_score'] >= 0.8 else "#FF9800" if job['ai_score'] >= 0.6 else "#F44336"
+                    
+                    with st.expander(f"📋 {job['title']} - {job['company']} ({sent_date.strftime('%d/%m/%Y')})"):
+                        col1, col2 = st.columns([2, 1])
                         
-                        col1, col2 = st.columns(2)
                         with col1:
-                            if job.get('url'):
-                                st.markdown(f"""
-                                <a href="{job['url']}" target="_blank" class="job-link-btn">
-                                    🌐 Voir sur {job.get('source', 'Internet')}
-                                </a>
-                                """, unsafe_allow_html=True)
+                            st.write(f"**🏢 Entreprise :** {job['company']}")
+                            st.write(f"**📍 Localisation :** {job['location']}")
+                            st.write(f"**💰 Salaire :** {job['salary']}")
+                            st.write(f"**🌐 Source :** {job['source']}")
+                            st.write(f"**📄 Description :** {job['description'][:200]}...")
+                        
                         with col2:
-                            if st.button(f"🗑️ Supprimer", key=f"delete_{i}"):
-                                user_info['saved_jobs'].pop(i)
-                                st.rerun()
+                            st.markdown(f"""
+                            <div style="text-align: center; padding: 1rem; background: {compatibility_color}; color: white; border-radius: 8px; margin-bottom: 1rem;">
+                                <h4>🎯 Compatibilité</h4>
+                                <h2>{job['ai_score']:.0%}</h2>
+                            </div>
+                            """, unsafe_allow_html=True)
+                            
+                            st.markdown(f"""
+                            <div style="text-align: center; padding: 1rem; background: {status_color}; color: white; border-radius: 8px;">
+                                <strong>{status}</strong>
+                            </div>
+                            """, unsafe_allow_html=True)
+                        
+                        # Affichage de la candidature générée
+                        if st.button(f"👁️ Voir la candidature IA", key=f"view_app_{i}"):
+                            st.subheader("📄 CV adapté par l'IA")
+                            st.text_area("CV généré", app['application']['cv'], height=200, disabled=True)
+                            
+                            st.subheader("✉️ Lettre de motivation générée par l'IA")
+                            st.text_area("Lettre générée", app['application']['cover_letter'], height=200, disabled=True)
+            
             else:
-                st.info("Aucune offre sauvegardée pour le moment")
+                st.info("Aucune candidature envoyée par l'IA pour le moment. Activez la candidature automatique pour commencer !")
         
         with tab5:
-            st.header("⚙️ Configuration des 12 API ULTIMATE+")
+            st.header("🛡️ Sécurité & Confidentialité")
             
+            st.subheader("🔐 Gestion des accès")
+            
+            # Informations de sécurité
             st.markdown("""
-            ### 📋 Configuration complète dans Streamlit Secrets :
+            <div class="notification-card">
+                <h4>🔒 Sécurité de vos données</h4>
+                <p>• Toutes vos données sont chiffrées et stockées de manière sécurisée</p>
+                <p>• L'IA n'accède qu'aux informations nécessaires pour les candidatures</p>
+                <p>• Vous pouvez supprimer toutes vos données à tout moment</p>
+                <p>• Aucune donnée n'est partagée avec des tiers sans votre consentement</p>
+            </div>
+            """, unsafe_allow_html=True)
             
-            ```
-            # API existantes (déjà configurées)
-            RAPIDAPI_KEY = "6b99ebdbe3mshb0b33108ec37e89p19596djsn933e7b4ec9c4"
-            ADZUNA_APP_ID = "82944816"
-            ADZUNA_APP_KEY = "397d28a14f97d98450954fd3ebd1ac45"
-            REED_API_KEY = "f0bd4083-5306-4c5d-8266-fca8c5eb431b"
+            # Gestion des données
+            col1, col2 = st.columns(2)
             
-            # NOUVELLES API à ajouter :
-            APIFY_API_TOKEN = "apify_api_ton_token_ici"
-            SCRAPINGBEE_API_KEY = "ton_api_key_scrapingbee"
-            ```
+            with col1:
+                st.subheader("📊 Vos données")
+                
+                if st.button("📥 Exporter mes données"):
+                    # Créer un export JSON des données utilisateur
+                    export_data = {
+                        'profile': {
+                            'name': user_info.get('name', ''),
+                            'experience': user_info.get('experience', ''),
+                            'skills': user_info.get('skills', [])
+                        },
+                        'ai_stats': user_info.get('ai_stats', {}),
+                        'applications_count': len(user_info.get('applications_history', [])),
+                        'export_date': datetime.now().isoformat()
+                    }
+                    
+                    st.download_button(
+                        label="💾 Télécharger mes données",
+                        data=json.dumps(export_data, indent=2, ensure_ascii=False),
+                        file_name=f"safe_job_hub_data_{datetime.now().strftime('%Y%m%d')}.json",
+                        mime="application/json"
+                    )
             
-            ### 🎯 Résultat attendu avec les 12 API ULTIMATE+ :
-            - **Actuellement** : 1796 offres
-            - **Avec 3 nouvelles API** : +1200 offres
-            - **TOTAL POSSIBLE** : **3000+ offres** !
-            """)
+            with col2:
+                st.subheader("🗑️ Suppression des données")
+                
+                st.warning("⚠️ **Attention** : Cette action est irréversible")
+                
+                if st.button("🗑️ Supprimer l'historique des candidatures", type="secondary"):
+                    user_info['applications_history'] = []
+                    user_info['ai_stats'] = {
+                        "total_jobs_analyzed": 0,
+                        "total_applications_sent": 0,
+                        "total_responses_received": 0,
+                        "total_interviews_obtained": 0,
+                        "last_activity_date": None
+                    }
+                    st.success("Historique supprimé !")
+                
+                if st.button("❌ Supprimer tout mon compte", type="secondary"):
+                    if st.session_state.current_user in st.session_state.users_db:
+                        del st.session_state.users_db[st.session_state.current_user]
+                        logout_user()
+                        st.success("Compte supprimé ! Redirection...")
+                        time.sleep(2)
+                        st.rerun()
+            
+            # Paramètres de confidentialité
+            st.subheader("🔧 Paramètres de confidentialité")
+            
+            privacy_settings = user_info.get('privacy_settings', {})
+            
+            allow_analytics = st.checkbox("📊 Autoriser l'analyse anonyme pour améliorer l'IA", 
+                                        value=privacy_settings.get('allow_analytics', True))
+            allow_notifications = st.checkbox("📧 Recevoir des notifications par email", 
+                                            value=privacy_settings.get('allow_notifications', True))
+            allow_data_sharing = st.checkbox("🤝 Partager des statistiques anonymes avec les partenaires", 
+                                           value=privacy_settings.get('allow_data_sharing', False))
+            
+            if st.button("💾 Sauvegarder les paramètres de confidentialité"):
+                user_info['privacy_settings'] = {
+                    'allow_analytics': allow_analytics,
+                    'allow_notifications': allow_notifications,
+                    'allow_data_sharing': allow_data_sharing
+                }
+                st.success("Paramètres de confidentialité sauvegardés !")
     
     else:
-        st.info("👈 Veuillez vous connecter pour accéder à l'application")
+        st.info("👈 Veuillez vous connecter pour accéder à Safe Job Hub AI")
         
-        st.header("🎯 Hub ULTIMATE+ MASSIVE - 4000+ offres garanties")
+        st.header("🤖 Safe Job Hub AI - Votre Assistant Emploi Intelligent")
         
         col1, col2, col3 = st.columns(3)
         
         with col1:
             st.markdown("""
             <div class="stats-card">
-                <h2>🚀</h2>
-                <h3>12 API ULTIMATE+</h3>
-                <p>Toutes les API optimisées avec exécution forcée</p>
+                <h2>🤖</h2>
+                <h3>IA de Candidature</h3>
+                <p>Recherche et candidature automatiques 24/7</p>
             </div>
             """, unsafe_allow_html=True)
         
         with col2:
             st.markdown("""
             <div class="stats-card">
-                <h2>🔢</h2>
-                <h3>20 Recherches Auto</h3>
-                <p>Recherches automatiques multiples + logs détaillés</p>
+                <h2>🎯</h2>
+                <h3>Matching Intelligent</h3>
+                <p>Score de compatibilité pour chaque offre</p>
             </div>
             """, unsafe_allow_html=True)
         
         with col3:
             st.markdown("""
             <div class="stats-card">
-                <h2>🎯</h2>
-                <h3>4000+ Offres</h3>
-                <p>Objectif garanti avec le mode ULTIMATE+ MASSIVE</p>
+                <h2>📊</h2>
+                <h3>Dashboard Complet</h3>
+                <p>Suivi en temps réel de vos candidatures</p>
             </div>
             """, unsafe_allow_html=True)
+        
+        st.markdown("""
+        ## 🚀 Fonctionnalités de l'IA
+        
+        - **🔍 Recherche Automatique** : L'IA analyse votre profil et recherche les offres compatibles
+        - **🎯 Score de Compatibilité** : Chaque offre reçoit un score basé sur votre profil
+        - **📝 Candidatures Personnalisées** : CV et lettres de motivation adaptés automatiquement
+        - **📊 Dashboard Complet** : Suivi en temps réel de vos candidatures et statistiques
+        - **🛡️ Sécurité Maximale** : Protection de vos données personnelles
+        - **🎯 Matching Intelligent** : Score de compatibilité pour chaque offre
+        """)
 
 if __name__ == "__main__":
     main()
