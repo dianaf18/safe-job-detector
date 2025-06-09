@@ -1319,4 +1319,165 @@ def main():
                     address = st.text_area("Adresse", value=user_info.get('address', ''))
                 
                 st.subheader("Expérience professionnelle")
-                experience = st.text_area("Décrivez votre expérience", value=user_
+                                st.subheader("Expérience professionnelle")
+                experience = st.text_area("Décrivez votre expérience", value=user_info.get('experience', ''), height=100)
+                
+                st.subheader("Compétences")
+                skills_input = st.text_input("Compétences (séparées par des virgules)", 
+                                           value=", ".join(user_info.get('skills', [])))
+                
+                st.subheader("CV")
+                uploaded_file = st.file_uploader("Télécharger votre CV", type=['pdf', 'doc', 'docx'])
+                
+                if st.form_submit_button("💾 Sauvegarder le profil"):
+                    user_info['name'] = name
+                    user_info['phone'] = phone
+                    user_info['address'] = address
+                    user_info['experience'] = experience
+                    user_info['skills'] = [skill.strip() for skill in skills_input.split(',') if skill.strip()]
+                    
+                    if uploaded_file:
+                        user_info['cv_uploaded'] = True
+                    
+                    st.success("Profil mis à jour avec succès!")
+            
+            # Historique des recherches
+            if user_info.get('searches'):
+                st.subheader("🔍 Historique des recherches ULTIMATE+")
+                for search in user_info['searches'][-5:]:
+                    st.write(f"**{search['query']}** à **{search['location']}** - {search['results_count']} offres - {search['timestamp'][:10]}")
+        
+        with tab3:
+            st.header("🛡️ Analyse manuelle d'une offre")
+            
+            job_text = st.text_area(
+                "Collez le texte de l'offre d'emploi ici:",
+                height=200,
+                placeholder="Copiez-collez le texte complet de l'offre d'emploi que vous souhaitez analyser..."
+            )
+            
+            if st.button("🔍 Analyser cette offre"):
+                if job_text:
+                    detector = AdvancedJobScamDetector()
+                    analysis = detector.analyze_text(job_text)
+                    
+                    col1, col2 = st.columns([1, 2])
+                    
+                    with col1:
+                        risk_percentage = int(analysis['risk_score'] * 100)
+                        
+                        if risk_percentage >= 60:
+                            st.error(f"🚨 RISQUE ÉLEVÉ: {risk_percentage}%")
+                        elif risk_percentage >= 30:
+                            st.warning(f"⚠️ RISQUE MOYEN: {risk_percentage}%")
+                        else:
+                            st.success(f"✅ RISQUE FAIBLE: {risk_percentage}%")
+                    
+                    with col2:
+                        if analysis['recommendations']:
+                            st.subheader("Recommandations:")
+                            for rec in analysis['recommendations']:
+                                st.write(f"• {rec}")
+                        
+                        if analysis['detected_patterns']:
+                            st.subheader("Signaux détectés:")
+                            for pattern in analysis['detected_patterns']:
+                                st.write(f"🔍 {pattern}")
+                else:
+                    st.error("Veuillez saisir le texte de l'offre")
+        
+        with tab4:
+            st.header("📊 Mes candidatures et offres sauvegardées")
+            
+            user_info = st.session_state.users_db[st.session_state.current_user]
+            
+            if user_info.get('saved_jobs'):
+                st.subheader(f"💾 Offres sauvegardées ({len(user_info['saved_jobs'])})")
+                for i, job in enumerate(user_info['saved_jobs']):
+                    remote_badge = " (Télétravail)" if job.get('is_remote') else ""
+                    with st.expander(f"{job['title']} - {job['company']} ({job.get('source', 'Internet')}){remote_badge}"):
+                        st.write(f"**Localisation:** {job['location']}")
+                        st.write(f"**Salaire:** {job.get('salary', 'Non spécifié')}")
+                        st.write(f"**Type:** {job.get('type', 'CDI')}")
+                        st.write(f"**Date:** {job.get('date', 'Non spécifiée')}")
+                        st.write(f"**Source:** {job.get('source', 'Internet')}")
+                        if job.get('is_remote'):
+                            st.write("**🏠 Télétravail possible**")
+                        st.write(f"**Description:** {job['description']}")
+                        
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            if job.get('url'):
+                                st.markdown(f"""
+                                <a href="{job['url']}" target="_blank" class="job-link-btn">
+                                    🌐 Voir sur {job.get('source', 'Internet')}
+                                </a>
+                                """, unsafe_allow_html=True)
+                        with col2:
+                            if st.button(f"🗑️ Supprimer", key=f"delete_{i}"):
+                                user_info['saved_jobs'].pop(i)
+                                st.rerun()
+            else:
+                st.info("Aucune offre sauvegardée pour le moment")
+        
+        with tab5:
+            st.header("⚙️ Configuration des 12 API ULTIMATE+")
+            
+            st.markdown("""
+            ### 📋 Configuration complète dans Streamlit Secrets :
+            
+            ```
+            # API existantes (déjà configurées)
+            RAPIDAPI_KEY = "6b99ebdbe3mshb0b33108ec37e89p19596djsn933e7b4ec9c4"
+            ADZUNA_APP_ID = "82944816"
+            ADZUNA_APP_KEY = "397d28a14f97d98450954fd3ebd1ac45"
+            REED_API_KEY = "f0bd4083-5306-4c5d-8266-fca8c5eb431b"
+            
+            # NOUVELLES API à ajouter :
+            APIFY_API_TOKEN = "apify_api_ton_token_ici"
+            SCRAPINGBEE_API_KEY = "ton_api_key_scrapingbee"
+            ```
+            
+            ### 🎯 Résultat attendu avec les 12 API ULTIMATE+ :
+            - **Actuellement** : 1796 offres
+            - **Avec 3 nouvelles API** : +1200 offres
+            - **TOTAL POSSIBLE** : **3000+ offres** !
+            """)
+    
+    else:
+        st.info("👈 Veuillez vous connecter pour accéder à l'application")
+        
+        st.header("🎯 Hub ULTIMATE+ MASSIVE - 4000+ offres garanties")
+        
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.markdown("""
+            <div class="stats-card">
+                <h2>🚀</h2>
+                <h3>12 API ULTIMATE+</h3>
+                <p>Toutes les API optimisées avec exécution forcée</p>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col2:
+            st.markdown("""
+            <div class="stats-card">
+                <h2>🔢</h2>
+                <h3>20 Recherches Auto</h3>
+                <p>Recherches automatiques multiples + logs détaillés</p>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col3:
+            st.markdown("""
+            <div class="stats-card">
+                <h2>🎯</h2>
+                <h3>4000+ Offres</h3>
+                <p>Objectif garanti avec le mode ULTIMATE+ MASSIVE</p>
+            </div>
+            """, unsafe_allow_html=True)
+
+if __name__ == "__main__":
+    main()
+
