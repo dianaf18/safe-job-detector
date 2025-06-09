@@ -1121,12 +1121,12 @@ def main():
         
         else:
             user_info = st.session_state.users_db[st.session_state.current_user]
-           st.markdown(f"""
-<div class="user-info">
-    <h3>👋 Bonjour {user_info['name']}!</h3>
-    <p>📧 {st.session_state.current_user}</p>
-</div>
-""", unsafe_allow_html=True)
+            st.markdown(f"""
+            <div class="user-info">
+                <h3>👋 Bonjour {user_info['name']}!</h3>
+                <p>📧 {st.session_state.current_user}</p>
+            </div>
+            """, unsafe_allow_html=True)
 
             
             # Statut des API ULTIMATE+
