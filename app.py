@@ -1319,7 +1319,6 @@ def main():
                     address = st.text_area("Adresse", value=user_info.get('address', ''))
                 
                 st.subheader("Expérience professionnelle")
-                                st.subheader("Expérience professionnelle")
                 experience = st.text_area("Décrivez votre expérience", value=user_info.get('experience', ''), height=100)
                 
                 st.subheader("Compétences")
