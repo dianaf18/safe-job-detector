@@ -1126,7 +1126,7 @@ def main():
                 <h3>👋 Bonjour {user_info['name']}!</h3>
                 <p>📧 {st.session_state.current_user}</p>
             </div>
-            """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)[1]
             
             # Statut des API ULTIMATE+
             st.subheader("🚀 API ULTIMATE+")
@@ -1319,5 +1319,4 @@ def main():
                     address = st.text_area("Adresse", value=user_info.get('address', ''))
                 
                 st.subheader("Expérience professionnelle")
-                experience = st.text_area("Décrivez votre expérience", value=user_info.get('experience', ''), height=100)
-
+                experience = st.text_area("Décrivez votre expérience", value=user_
