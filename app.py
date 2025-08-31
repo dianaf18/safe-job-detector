@@ -621,7 +621,7 @@ if 'current_user' not in st.session_state:
 
 # Interface principale
 def main():
-    st.markdown('<h1 class="main-header">🤖 Safe Job Hub AI - Candidature Automatique</h1>', unsafe_allow_html=True)[1]
+    st.markdown('<h1 class="main-header">🤖 Safe Job Hub AI - Candidature Automatique</h1>', unsafe_allow_html=True)
     st.markdown("### IA de recherche et candidature automatique - Votre assistant emploi 24/7")
     
     # Sidebar pour l'authentification
@@ -1268,4 +1268,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
