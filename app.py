@@ -704,8 +704,25 @@ def main():
             "🛡️ Sécurité"
         ])
         
-        with tab1:
-            st.header("🤖 Intelligence Artificielle de Candidature")
+       with tab1:
+    st.header("🤖 Intelligence Artificielle de Candidature")
+
+    # --- Ici, tu fais ta recherche IA, tu obtiens filtered_jobs (liste d'offres compatibles) ---
+
+    jobs = filtered_jobs  # ou le nom de ta variable contenant les offres après recherche IA
+
+    # Bloc affichage paginé :
+    jobs_to_show = jobs[:st.session_state.jobs_to_show_count]
+    st.subheader("🏆 Offres compatibles avec votre profil")
+
+    for i, job in enumerate(jobs_to_show):
+        # Remplace ce bloc par ton affichage détaillé habituel
+        st.write(f"{i+1}. {job['title']} - {job['company']} - {job['location']}")
+
+    if st.session_state.jobs_to_show_count < len(jobs):
+        if st.button("Afficher 10 offres de plus"):
+            st.session_state.jobs_to_show_count += 10
+
             
             # Configuration de l'IA
             col1, col2 = st.columns(2)
@@ -1270,6 +1287,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
