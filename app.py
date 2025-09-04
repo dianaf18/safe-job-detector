@@ -1126,140 +1126,140 @@ if st.button("🚀 Lancer une recherche IA test", type="primary"):
                 st.info("Aucune candidature envoyée par l'IA pour le moment. Activez la candidature automatique pour commencer !")
         
         with tab5:
-            st.header("🛡️ Sécurité & Confidentialité")
-            
-            st.subheader("🔐 Gestion des accès")
-            
-            # Informations de sécurité
-            st.markdown("""
-            <div class="notification-card">
-                <h4>🔒 Sécurité de vos données</h4>
-                <p>• Toutes vos données sont chiffrées et stockées de manière sécurisée</p>
-                <p>• L'IA n'accède qu'aux informations nécessaires pour les candidatures</p>
-                <p>• Vous pouvez supprimer toutes vos données à tout moment</p>
-                <p>• Aucune donnée n'est partagée avec des tiers sans votre consentement</p>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            # Gestion des données
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.subheader("📊 Vos données")
-                
-                if st.button("📥 Exporter mes données"):
-                    # Créer un export JSON des données utilisateur
-                    export_data = {
-                        'profile': {
-                            'name': user_info.get('name', ''),
-                            'experience': user_info.get('experience', ''),
-                            'skills': user_info.get('skills', [])
-                        },
-                        'ai_stats': user_info.get('ai_stats', {}),
-                        'applications_count': len(user_info.get('applications_history', [])),
-                        'export_date': datetime.now().isoformat()
-                    }
-                    
-                    st.download_button(
-                        label="💾 Télécharger mes données",
-                        data=json.dumps(export_data, indent=2, ensure_ascii=False),
-                        file_name=f"safe_job_hub_data_{datetime.now().strftime('%Y%m%d')}.json",
-                        mime="application/json"
-                    )
-            
-            with col2:
-                st.subheader("🗑️ Suppression des données")
-                
-                st.warning("⚠️ **Attention** : Cette action est irréversible")
-                
-                if st.button("🗑️ Supprimer l'historique des candidatures", type="secondary"):
-                    user_info['applications_history'] = []
-                    user_info['ai_stats'] = {
-                        "total_jobs_analyzed": 0,
-                        "total_applications_sent": 0,
-                        "total_responses_received": 0,
-                        "total_interviews_obtained": 0,
-                        "last_activity_date": None
-                    }
-                    st.success("Historique supprimé !")
-                
-                if st.button("❌ Supprimer tout mon compte", type="secondary"):
-                    if st.session_state.current_user in st.session_state.users_db:
-                        del st.session_state.users_db[st.session_state.current_user]
-                        logout_user()
-                        st.success("Compte supprimé ! Redirection...")
-                        time.sleep(2)
-                        st.rerun()
-            
-            # Paramètres de confidentialité
-            st.subheader("🔧 Paramètres de confidentialité")
-            
-            privacy_settings = user_info.get('privacy_settings', {})
-            
-            allow_analytics = st.checkbox("📊 Autoriser l'analyse anonyme pour améliorer l'IA", 
-                                        value=privacy_settings.get('allow_analytics', True))
-            allow_notifications = st.checkbox("📧 Recevoir des notifications par email", 
-                                            value=privacy_settings.get('allow_notifications', True))
-            allow_data_sharing = st.checkbox("🤝 Partager des statistiques anonymes avec les partenaires", 
-                                           value=privacy_settings.get('allow_data_sharing', False))
-            
-        if st.button("💾 Sauvegarder les paramètres de confidentialité"):
-            user_info['privacy_settings'] = {
-                'allow_analytics': allow_analytics,
-                'allow_notifications': allow_notifications,
-                'allow_data_sharing': allow_data_sharing
+    st.header("🛡️ Sécurité & Confidentialité")
+    
+    st.subheader("🔐 Gestion des accès")
+    
+    # Informations de sécurité
+    st.markdown("""
+    <div class="notification-card">
+        <h4>🔒 Sécurité de vos données</h4>
+        <p>• Toutes vos données sont chiffrées et stockées de manière sécurisée</p>
+        <p>• L'IA n'accède qu'aux informations nécessaires pour les candidatures</p>
+        <p>• Vous pouvez supprimer toutes vos données à tout moment</p>
+        <p>• Aucune donnée n'est partagée avec des tiers sans votre consentement</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Gestion des données
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("📊 Vos données")
+        
+        if st.button("📥 Exporter mes données"):
+            # Créer un export JSON des données utilisateur
+            export_data = {
+                'profile': {
+                    'name': user_info.get('name', ''),
+                    'experience': user_info.get('experience', ''),
+                    'skills': user_info.get('skills', [])
+                },
+                'ai_stats': user_info.get('ai_stats', {}),
+                'applications_count': len(user_info.get('applications_history', [])),
+                'export_date': datetime.now().isoformat()
             }
+            
+            st.download_button(
+                label="💾 Télécharger mes données",
+                data=json.dumps(export_data, indent=2, ensure_ascii=False),
+                file_name=f"safe_job_hub_data_{datetime.now().strftime('%Y%m%d')}.json",
+                mime="application/json"
+            )
+    
+    with col2:
+        st.subheader("🗑️ Suppression des données")
+        
+        st.warning("⚠️ **Attention** : Cette action est irréversible")
+        
+        if st.button("🗑️ Supprimer l'historique des candidatures", type="secondary"):
+            user_info['applications_history'] = []
+            user_info['ai_stats'] = {
+                "total_jobs_analyzed": 0,
+                "total_applications_sent": 0,
+                "total_responses_received": 0,
+                "total_interviews_obtained": 0,
+                "last_activity_date": None
+            }
+            st.success("Historique supprimé !")
+        
+        if st.button("❌ Supprimer tout mon compte", type="secondary"):
+            if st.session_state.current_user in st.session_state.users_db:
+                del st.session_state.users_db[st.session_state.current_user]
+                logout_user()
+                st.success("Compte supprimé ! Redirection...")
+                time.sleep(2)
+                st.rerun()
+    
+    # Paramètres de confidentialité
+    st.subheader("🔧 Paramètres de confidentialité")
+    
+    privacy_settings = user_info.get('privacy_settings', {})
+    
+    allow_analytics = st.checkbox("📊 Autoriser l'analyse anonyme pour améliorer l'IA", 
+                                 value=privacy_settings.get('allow_analytics', True))
+    allow_notifications = st.checkbox("📧 Recevoir des notifications par email", 
+                                      value=privacy_settings.get('allow_notifications', True))
+    allow_data_sharing = st.checkbox("🤝 Partager des statistiques anonymes avec les partenaires", 
+                                     value=privacy_settings.get('allow_data_sharing', False))
+    
+    if st.button("💾 Sauvegarder les paramètres de confidentialité"):
+        user_info['privacy_settings'] = {
+            'allow_analytics': allow_analytics,
+            'allow_notifications': allow_notifications,
+            'allow_data_sharing': allow_data_sharing
+        }
+        st.success("Paramètres de confidentialité sauvegardés !")
 
-    st.success("Paramètres de confidentialité sauvegardés !")
-
-        else:
+else:
     st.info("👈 Veuillez vous connecter pour accéder à Safe Job Hub AI")
     
     st.header("🤖 Safe Job Hub AI - Votre Assistant Emploi Intelligent")
     
     col1, col2, col3 = st.columns(3)
-
-        
-        with col1:
-            st.markdown("""
-            <div class="stats-card">
-                <h2>🤖</h2>
-                <h3>IA de Candidature</h3>
-                <p>Recherche et candidature automatiques 24/7</p>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with col2:
-            st.markdown("""
-            <div class="stats-card">
-                <h2>🎯</h2>
-                <h3>Matching Intelligent</h3>
-                <p>Score de compatibilité pour chaque offre</p>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with col3:
-            st.markdown("""
-            <div class="stats-card">
-                <h2>📊</h2>
-                <h3>Dashboard Complet</h3>
-                <p>Suivi en temps réel de vos candidatures</p>
-            </div>
-            """, unsafe_allow_html=True)
-        
+    
+    with col1:
         st.markdown("""
-        ## 🚀 Fonctionnalités de l'IA
-        
-        - **🔍 Recherche Automatique** : L'IA analyse votre profil et recherche les offres compatibles
-        - **🎯 Score de Compatibilité** : Chaque offre reçoit un score basé sur votre profil
-        - **📝 Candidatures Personnalisées** : CV et lettres de motivation adaptés automatiquement
-        - **📊 Dashboard Complet** : Suivi en temps réel de vos candidatures et statistiques
-        - **🛡️ Sécurité Maximale** : Protection de vos données personnelles
-        - **🎯 Matching Intelligent** : Score de compatibilité pour chaque offre
-        """)
+        <div class="stats-card">
+            <h2>🤖</h2>
+            <h3>IA de Candidature</h3>
+            <p>Recherche et candidature automatiques 24/7</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown("""
+        <div class="stats-card">
+            <h2>🎯</h2>
+            <h3>Matching Intelligent</h3>
+            <p>Score de compatibilité pour chaque offre</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col3:
+        st.markdown("""
+        <div class="stats-card">
+            <h2>📊</h2>
+            <h3>Dashboard Complet</h3>
+            <p>Suivi en temps réel de vos candidatures</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    st.markdown("""
+    ## 🚀 Fonctionnalités de l'IA
+    
+    - **🔍 Recherche Automatique** : L'IA analyse votre profil et recherche les offres compatibles
+    - **🎯 Score de Compatibilité** : Chaque offre reçoit un score basé sur votre profil
+    - **📝 Candidatures Personnalisées** : CV et lettres de motivation adaptés automatiquement
+    - **📊 Dashboard Complet** : Suivi en temps réel de vos candidatures et statistiques
+    - **🛡️ Sécurité Maximale** : Protection de vos données personnelles
+    - **🎯 Matching Intelligent** : Score de compatibilité pour chaque offre
+    """)
 
 if __name__ == "__main__":
     main()
+
+
 
 
 
