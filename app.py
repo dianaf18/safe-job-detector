@@ -1218,23 +1218,24 @@ else:
     
     col1, col2, col3 = st.columns(3)
     
-    with col1:
-        st.markdown("""
-        <div class="stats-card">
-            <h2>🤖</h2>
-            <h3>IA de Candidature</h3>
-            <p>Recherche et candidature automatiques 24/7</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
+   with col1:
+    st.markdown("""
+    <div class="stats-card">
+        <h2>🤖</h2>
+        <h3>IA de Candidature</h3>
+        <p>Recherche et candidature automatiques 24/7</p>
+    </div>
+    """, unsafe_allow_html=True)
+
     with col2:
-        st.markdown("""
-        <div class="stats-card">
-            <h2>🎯</h2>
-            <h3>Matching Intelligent</h3>
-            <p>Score de compatibilité pour chaque offre</p>
-        </div>
-        """, unsafe_allow_html=True)
+     st.markdown("""
+     <div class="stats-card">
+         <h2>🎯</h2>
+         <h3>Matching Intelligent</h3>
+         <p>Score de compatibilité pour chaque offre</p>
+     </div>
+    """, unsafe_allow_html=True)
+
     
     with col3:
         st.markdown("""
@@ -1258,6 +1259,7 @@ else:
 
 if __name__ == "__main__":
     main()
+
 
 
 
