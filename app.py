@@ -822,14 +822,15 @@ if st.button("🚀 Lancer une recherche IA test", type="primary"):
                     compatibility_color = "#4CAF50" if job['ai_score'] >= 0.8 else "#FF9800" if job['ai_score'] >= 0.6 else "#F44336"
                     with st.container():
                         st.markdown(f"""
-                        <div class="ai-card">
-                            <h3>#{i+1} - {job['title']}</h3>
-                            <p><strong>🏢 {job['company']}</strong> • 📍 {job['location']} • 🌐 {job['source']}</p>
-                            <p>{job['description'][:200]}...</p>
-                            <p>💰 {job['salary']} • 📋 {job['type']} • 
-                            <span style="color: {compatibility_color};">🎯 Compatibilité: {job['ai_score']:.1%}</span></p>
-                        </div>
-                        """, unsafe
+                            <div class="ai-card">
+                                <h3>#{i+1} - {job['title']}</h3>
+                                <p><strong>🏢 {job['company']}</strong> • 📍 {job['location']} • 🌐 {job['source']}</p>
+                                <p>{job['description'][:200]}...</p>
+                                <p>💰 {job['salary']} • 📋 {job['type']} • 
+                                <span style="color: {compatibility_color};">🎯 Compatibilité: {job['ai_score']:.1%}</span></p>
+                            </div>
+                        """, unsafe_allow_html=True)
+
 
         
         with tab2:
@@ -1257,6 +1258,7 @@ if st.button("🚀 Lancer une recherche IA test", type="primary"):
 
 if __name__ == "__main__":
     main()
+
 
 
 
