@@ -725,47 +725,52 @@ with tab2:
     # Configuration de l'IA
     col1, col2 = st.columns(2)
 
-    with col1:
-        st.subheader("⚙️ Configuration de l'IA")
+   with col1:
+    st.subheader("⚙️ Configuration de l'IA")
+    ai_settings = user_info.get('ai_settings', {})
+    
+    auto_search = st.toggle(
+        "🔍 Recherche automatique quotidienne",
+        value=ai_settings.get('auto_search_enabled', False)
+    )
+    auto_apply = st.toggle(
+        "🚀 Candidature automatique",
+        value=ai_settings.get('auto_apply_enabled', False)
+    )
+    daily_limit = st.slider(
+        "📊 Candidatures max/jour", 1, 20,
+        ai_settings.get('daily_application_limit', 5)
+    )
+    compatibility_threshold = st.slider(
+        "🎯 Seuil de compatibilité", 0.0, 1.0,
+        ai_settings.get('compatibility_threshold', 0.6)
+    )
 
-        ai_settings = user_info.get('ai_settings', {})
+    # Sauvegarder les paramètres
+    user_info['ai_settings'].update({
+        'auto_search_enabled': auto_search,
+        'auto_apply_enabled': auto_apply,
+        'daily_application_limit': daily_limit,
+        'compatibility_threshold': compatibility_threshold
+    })
 
-        auto_search = st.toggle(
-            "🔍 Recherche automatique quotidienne",
-            value=ai_settings.get('auto_search_enabled', False)
-        )
-        auto_apply = st.toggle(
-            "🚀 Candidature automatique",
-            value=ai_settings.get('auto_apply_enabled', False)
-        )
-        daily_limit = st.slider(
-            "📊 Candidatures max/jour", 1, 20,
-            ai_settings.get('daily_application_limit', 5)
-        )
-        compatibility_threshold = st.slider(
-            "🎯 Seuil de compatibilité", 0.0, 1.0,
-            ai_settings.get('compatibility_threshold', 0.6)
-        )
+with col2:
+    st.subheader("🎯 Critères de recherche")
+    
+    job_types = st.multiselect(
+        "Types de postes",
+        ["CDI", "CDD", "Stage", "Freelance", "Interim"],
+        default=ai_settings.get('preferred_job_types', ["CDI"])
+    )
+    salary_min = st.number_input(
+        "💰 Salaire minimum (€)", 0, 100000,
+        ai_settings.get('salary_min', 30000)
+    )
+    remote_ok = st.checkbox(
+        "🏠 Télétravail accepté",
+        value=ai_settings.get('remote_preference', False)
+    )
 
-                
-                # Sauvegarder les paramètres
-                user_info['ai_settings'].update({
-                    'auto_search_enabled': auto_search,
-                    'auto_apply_enabled': auto_apply,
-                    'daily_application_limit': daily_limit,
-                    'compatibility_threshold': compatibility_threshold
-                })
-            
-            with col2:
-                st.subheader("🎯 Critères de recherche")
-                
-                job_types = st.multiselect("Types de postes", 
-                                         ["CDI", "CDD", "Stage", "Freelance", "Interim"],
-                                         default=ai_settings.get('preferred_job_types', ["CDI"]))
-                salary_min = st.number_input("💰 Salaire minimum (€)", 0, 100000, 
-                                           ai_settings.get('salary_min', 30000))
-                remote_ok = st.checkbox("🏠 Télétravail accepté", 
-                                       value=ai_settings.get('remote_preference', False))
                 
                 # Sauvegarder les critères
                 user_info['ai_settings'].update({
@@ -1294,6 +1299,7 @@ with tab2:
 
 if __name__ == "__main__":
     main()
+
 
 
 
