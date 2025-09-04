@@ -1122,10 +1122,13 @@ if st.button("🚀 Lancer une recherche IA test", type="primary"):
                             st.subheader("✉️ Lettre de motivation générée par l'IA")
                             st.text_area("Lettre générée", app['application']['cover_letter'], height=200, disabled=True)
             
-            else:
-                st.info("Aucune candidature envoyée par l'IA pour le moment. Activez la candidature automatique pour commencer !")
-        
-        with tab5:
+            # ... code précédent ...
+
+# Bloc else (niveau indentation 8 espaces dans ton code)
+else:
+    st.info("Aucune candidature envoyée par l'IA pour le moment. Activez la candidature automatique pour commencer !")
+
+with tab5:
     st.header("🛡️ Sécurité & Confidentialité")
     
     st.subheader("🔐 Gestion des accès")
@@ -1140,6 +1143,7 @@ if st.button("🚀 Lancer une recherche IA test", type="primary"):
         <p>• Aucune donnée n'est partagée avec des tiers sans votre consentement</p>
     </div>
     """, unsafe_allow_html=True)
+
     
     # Gestion des données
     col1, col2 = st.columns(2)
@@ -1259,6 +1263,7 @@ else:
 
 if __name__ == "__main__":
     main()
+
 
 
 
