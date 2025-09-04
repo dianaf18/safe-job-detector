@@ -1203,20 +1203,21 @@ if st.button("🚀 Lancer une recherche IA test", type="primary"):
             allow_data_sharing = st.checkbox("🤝 Partager des statistiques anonymes avec les partenaires", 
                                            value=privacy_settings.get('allow_data_sharing', False))
             
-            if st.button("💾 Sauvegarder les paramètres de confidentialité"):
-                user_info['privacy_settings'] = {
-                    'allow_analytics': allow_analytics,
-                    'allow_notifications': allow_notifications,
-                    'allow_data_sharing': allow_data_sharing
-                }
-                st.success("Paramètres de confidentialité sauvegardés !")
+        if st.button("💾 Sauvegarder les paramètres de confidentialité"):
+    user_info['privacy_settings'] = {
+        'allow_analytics': allow_analytics,
+        'allow_notifications': allow_notifications,
+        'allow_data_sharing': allow_data_sharing
+    }
+    st.success("Paramètres de confidentialité sauvegardés !")
+
+        else:
+    st.info("👈 Veuillez vous connecter pour accéder à Safe Job Hub AI")
     
-    else:
-        st.info("👈 Veuillez vous connecter pour accéder à Safe Job Hub AI")
-        
-        st.header("🤖 Safe Job Hub AI - Votre Assistant Emploi Intelligent")
-        
-        col1, col2, col3 = st.columns(3)
+    st.header("🤖 Safe Job Hub AI - Votre Assistant Emploi Intelligent")
+    
+    col1, col2, col3 = st.columns(3)
+
         
         with col1:
             st.markdown("""
@@ -1258,6 +1259,7 @@ if st.button("🚀 Lancer une recherche IA test", type="primary"):
 
 if __name__ == "__main__":
     main()
+
 
 
 
