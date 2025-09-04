@@ -750,47 +750,46 @@ with tab2:
             'compatibility_threshold': compatibility_threshold
         })
     
-    with col2:
-        st.subheader("🎯 Critères de recherche")
-        
-        job_types = st.multiselect(
-            "Types de postes",
-            ["CDI", "CDD", "Stage", "Freelance", "Interim"],
-            default=ai_settings.get('preferred_job_types', ["CDI"])
-        )
-        salary_min = st.number_input(
-            "💰 Salaire minimum (€)", 0, 100000,
-            ai_settings.get('salary_min', 30000)
-        )
-        remote_ok = st.checkbox(
-            "🏠 Télétravail accepté",
-            value=ai_settings.get('remote_preference', False)
-        )
+ with col2:
+    st.subheader("🎯 Critères de recherche")
+    
+    job_types = st.multiselect(
+        "Types de postes",
+        ["CDI", "CDD", "Stage", "Freelance", "Interim"],
+        default=ai_settings.get('preferred_job_types', ["CDI"])
+    )
+    salary_min = st.number_input(
+        "💰 Salaire minimum (€)", 0, 100000,
+        ai_settings.get('salary_min', 30000)
+    )
+    remote_ok = st.checkbox(
+        "🏠 Télétravail accepté",
+        value=ai_settings.get('remote_preference', False)
+    )
+    
+    # Sauvegarder les critères
+    user_info['ai_settings'].update({
+        'preferred_job_types': job_types,
+        'salary_min': salary_min,
+        'remote_preference': remote_ok
+    })
+
+    # Test de l'IA
+    st.subheader("🧪 Test de l'IA de Candidature")
+    if st.button("🚀 Lancer une recherche IA test", type="primary"):
+        if not user_info.get('experience') or not user_info.get('skills'):
+            st.error("⚠️ Veuillez compléter votre profil (expérience et compétences) dans l'onglet 'Profil & Config'")
+        else:
+            with st.spinner("🤖 L'IA analyse votre profil et recherche des offres compatibles..."):
+                # Analyse du profil utilisateur
+                profile_ai = UserProfileAI()
+                user_criteria = profile_ai.analyze_user_profile(
+                    user_info['experience'], 
+                    user_info['skills'], 
+                    ai_settings
+                )
 
 
-                
-                # Sauvegarder les critères
-                user_info['ai_settings'].update({
-                    'preferred_job_types': job_types,
-                    'salary_min': salary_min,
-                    'remote_preference': remote_ok
-                })
-            
-            # Test de l'IA
-            st.subheader("🧪 Test de l'IA de Candidature")
-            
-            if st.button("🚀 Lancer une recherche IA test", type="primary"):
-                if not user_info.get('experience') or not user_info.get('skills'):
-                    st.error("⚠️ Veuillez compléter votre profil (expérience et compétences) dans l'onglet 'Profil & Config'")
-                else:
-                    with st.spinner("🤖 L'IA analyse votre profil et recherche des offres compatibles..."):
-                        # Analyse du profil utilisateur
-                        profile_ai = UserProfileAI()
-                        user_criteria = profile_ai.analyze_user_profile(
-                            user_info['experience'], 
-                            user_info['skills'], 
-                            ai_settings
-                        )
                         
                         # Recherche automatique
                         search_ai = AutoJobSearchAI()
@@ -1296,6 +1295,7 @@ with tab2:
 
 if __name__ == "__main__":
     main()
+
 
 
 
