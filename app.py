@@ -1204,11 +1204,12 @@ if st.button("🚀 Lancer une recherche IA test", type="primary"):
                                            value=privacy_settings.get('allow_data_sharing', False))
             
         if st.button("💾 Sauvegarder les paramètres de confidentialité"):
-    user_info['privacy_settings'] = {
-        'allow_analytics': allow_analytics,
-        'allow_notifications': allow_notifications,
-        'allow_data_sharing': allow_data_sharing
-    }
+            user_info['privacy_settings'] = {
+                'allow_analytics': allow_analytics,
+                'allow_notifications': allow_notifications,
+                'allow_data_sharing': allow_data_sharing
+            }
+
     st.success("Paramètres de confidentialité sauvegardés !")
 
         else:
@@ -1259,6 +1260,7 @@ if st.button("🚀 Lancer une recherche IA test", type="primary"):
 
 if __name__ == "__main__":
     main()
+
 
 
 
