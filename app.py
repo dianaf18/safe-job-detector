@@ -1207,14 +1207,13 @@ with tab5:
     allow_data_sharing = st.checkbox("🤝 Partager des statistiques anonymes avec les partenaires", 
                                      value=privacy_settings.get('allow_data_sharing', False))
     
-    if st.button("💾 Sauvegarder les paramètres de confidentialité"):
-        user_info['privacy_settings'] = {
-            'allow_analytics': allow_analytics,
-            'allow_notifications': allow_notifications,
-            'allow_data_sharing': allow_data_sharing
-        }
-        st.success("Paramètres de confidentialité sauvegardés !")
-
+   if st.button("💾 Sauvegarder les paramètres de confidentialité"):
+    user_info['privacy_settings'] = {
+        'allow_analytics': allow_analytics,
+        'allow_notifications': allow_notifications,
+        'allow_data_sharing': allow_data_sharing
+    }
+    st.success("Paramètres de confidentialité sauvegardés !")
 else:
     st.info("👈 Veuillez vous connecter pour accéder à Safe Job Hub AI")
     
@@ -1222,24 +1221,23 @@ else:
     
     col1, col2, col3 = st.columns(3)
     
-   with col1:
-    st.markdown("""
-    <div class="stats-card">
-        <h2>🤖</h2>
-        <h3>IA de Candidature</h3>
-        <p>Recherche et candidature automatiques 24/7</p>
-    </div>
-    """, unsafe_allow_html=True)
-
+    with col1:
+        st.markdown("""
+        <div class="stats-card">
+            <h2>🤖</h2>
+            <h3>IA de Candidature</h3>
+            <p>Recherche et candidature automatiques 24/7</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
     with col2:
-     st.markdown("""
-     <div class="stats-card">
-         <h2>🎯</h2>
-         <h3>Matching Intelligent</h3>
-         <p>Score de compatibilité pour chaque offre</p>
-     </div>
-    """, unsafe_allow_html=True)
-
+        st.markdown("""
+        <div class="stats-card">
+            <h2>🎯</h2>
+            <h3>Matching Intelligent</h3>
+            <p>Score de compatibilité pour chaque offre</p>
+        </div>
+        """, unsafe_allow_html=True)
     
     with col3:
         st.markdown("""
@@ -1263,6 +1261,7 @@ else:
 
 if __name__ == "__main__":
     main()
+
 
 
 
