@@ -690,33 +690,106 @@ def main():
                 st.rerun()
     
     # Contenu principal
-    if st.session_state.logged_in:
-        user_info = st.session_state.users_db[st.session_state.current_user]
-        if 'jobs_to_show_count' not in st.session_state:
-            st.session_state.jobs_to_show_count = 10
+if st.session_state.logged_in:
+    user_info = st.session_state.users_db[st.session_state.current_user]
+    if 'jobs_to_show_count' not in st.session_state:
+        st.session_state.jobs_to_show_count = 10
 
-      # Onglets principaux
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    "🤖 IA Candidature",
-    "📊 Dashboard IA",
-    "👤 Profil & Config",
-    "📋 Historique",
-    "🛡️ Sécurité"
-])
+    # Onglets principaux
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+        "🤖 IA Candidature",
+        "📊 Dashboard IA",
+        "👤 Profil & Config",
+        "📋 Historique",
+        "🛡️ Sécurité"
+    ])
 
-with tab1:
-    st.header("🤖 Intelligence Artificielle de Candidature")
-    # --- Ici, tu fais ta recherche IA, tu obtiens filtered_jobs (liste d'offres compatibles) ---
-    jobs = filtered_jobs  # ou le nom de ta variable contenant les offres après recherche IA
-    # Bloc affichage paginé :
-    jobs_to_show = jobs[:st.session_state.jobs_to_show_count]
-    st.subheader("🏆 Offres compatibles avec votre profil")
-    for i, job in enumerate(jobs_to_show):
-        # Remplace ce bloc par ton affichage détaillé habituel
-        st.write(f"{i+1}. {job['title']} - {job['company']} - {job['location']}")
-    if st.session_state.jobs_to_show_count < len(jobs):
-        if st.button("Afficher 10 offres de plus"):
-            st.session_state.jobs_to_show_count += 10
+    with tab1:
+        st.header("🤖 Intelligence Artificielle de Candidature")
+        # --- Ici, tu fais ta recherche IA, tu obtiens filtered_jobs (liste d'offres compatibles) ---
+        # Exemple, calculer filtered_jobs avant son utilisation 
+        profile_ai = UserProfileAI()
+        ai_settings = user_info.get('ai_settings', {})
+        user_criteria = profile_ai.analyze_user_profile(
+            user_info['experience'],
+            user_info['skills'],
+            ai_settings
+        )
+        search_ai = AutoJobSearchAI()
+        filtered_jobs = search_ai.intelligent_job_search(user_criteria)
+
+        jobs = filtered_jobs  # ou le nom de ta variable contenant les offres après recherche IA
+
+        # Bloc affichage paginé :
+        jobs_to_show = jobs[:st.session_state.jobs_to_show_count]
+        st.subheader("🏆 Offres compatibles avec votre profil")
+        for i, job in enumerate(jobs_to_show):
+            st.write(f"{i+1}. {job['title']} - {job['company']} - {job['location']}")
+        
+        if st.session_state.jobs_to_show_count < len(jobs):
+            if st.button("Afficher 10 offres de plus"):
+                st.session_state.jobs_to_show_count += 10
+
+        # Test de l'IA (toujours dans tab1)
+        st.subheader("🧪 Test de l'IA de Candidature")
+        if st.button("🚀 Lancer une recherche IA test", type="primary"):
+            if not user_info.get('experience') or not user_info.get('skills'):
+                st.error("⚠️ Veuillez compléter votre profil (expérience et compétences) dans l'onglet 'Profil & Config'")
+            else:
+                with st.spinner("🤖 L'IA analyse votre profil et recherche des offres compatibles..."):
+                    # Analyse du profil utilisateur
+                    profile_ai = UserProfileAI()
+                    user_criteria = profile_ai.analyze_user_profile(
+                        user_info['experience'], 
+                        user_info['skills'], 
+                        ai_settings
+                    )
+
+                    # Recherche automatique
+                    search_ai = AutoJobSearchAI()
+                    filtered_jobs = search_ai.intelligent_job_search(user_criteria, "")
+
+                    # Candidature automatique (si activée)
+                    applications_sent = []
+                    auto_apply = ai_settings.get('auto_apply_enabled', False)
+                    daily_limit = ai_settings.get('daily_application_limit', 5)
+                    if auto_apply and filtered_jobs:
+                        applicant_ai = AutoApplicantAI()
+                        applications_sent = applicant_ai.auto_apply_to_jobs(
+                            filtered_jobs, user_info, user_criteria, daily_limit
+                        )
+
+                    # Affichage des résultats
+                    if filtered_jobs:
+                        st.success(f"🎉 L'IA a trouvé {len(filtered_jobs)} offres compatibles avec votre profil !")
+
+                        # Statistiques
+                        col1, col2, col3, col4 = st.columns(4)
+                        with col1:
+                            st.metric("Offres analysées", len(filtered_jobs))
+                        with col2:
+                            avg_score = sum(job['ai_score'] for job in filtered_jobs) / len(filtered_jobs)
+                            st.metric("Score moyen", f"{avg_score:.1%}")
+                        with col3:
+                            st.metric("Candidatures envoyées", len(applications_sent))
+                        with col4:
+                            remote_count = sum(1 for job in filtered_jobs if job['is_remote'])
+                            st.metric("Télétravail", remote_count)
+
+                        # Affichage des meilleures offres (top 10)
+                        st.subheader("🏆 Top 10 des offres les plus compatibles")
+                        for i, job in enumerate(filtered_jobs[:10]):
+                            compatibility_color = "#4CAF50" if job['ai_score'] >= 0.8 else "#FF9800" if job['ai_score'] >= 0.6 else "#F44336"
+                            with st.container():
+                                st.markdown(f"""
+                                    <div class="ai-card">
+                                        <h3>#{i+1} - {job['title']}</h3>
+                                        <p><strong>🏢 {job['company']}</strong> • 📍 {job['location']} • 🌐 {job['source']}</p>
+                                        <p>{job['description'][:200]}...</p>
+                                        <p>💰 {job['salary']} • 📋 {job['type']} • 
+                                        <span style="color: {compatibility_color};">🎯 Compatibilité: {job['ai_score']:.1%}</span></p>
+                                    </div>
+                                """, unsafe_allow_html=True)
 
 with tab2:
     # Configuration de l'IA
@@ -1263,6 +1336,7 @@ else:
 
 if __name__ == "__main__":
     main()
+
 
 
 
