@@ -1196,24 +1196,26 @@ with tab5:
                 st.rerun()
     
     # Paramètres de confidentialité
-    st.subheader("🔧 Paramètres de confidentialité")
-    
-    privacy_settings = user_info.get('privacy_settings', {})
-    
-    allow_analytics = st.checkbox("📊 Autoriser l'analyse anonyme pour améliorer l'IA", 
-                                 value=privacy_settings.get('allow_analytics', True))
-    allow_notifications = st.checkbox("📧 Recevoir des notifications par email", 
-                                      value=privacy_settings.get('allow_notifications', True))
-    allow_data_sharing = st.checkbox("🤝 Partager des statistiques anonymes avec les partenaires", 
-                                     value=privacy_settings.get('allow_data_sharing', False))
-    
-   if st.button("💾 Sauvegarder les paramètres de confidentialité"):
+    # Paramètres de confidentialité
+st.subheader("🔧 Paramètres de confidentialité")
+
+privacy_settings = user_info.get('privacy_settings', {})
+
+allow_analytics = st.checkbox("📊 Autoriser l'analyse anonyme pour améliorer l'IA", 
+                             value=privacy_settings.get('allow_analytics', True))
+allow_notifications = st.checkbox("📧 Recevoir des notifications par email", 
+                                  value=privacy_settings.get('allow_notifications', True))
+allow_data_sharing = st.checkbox("🤝 Partager des statistiques anonymes avec les partenaires", 
+                                 value=privacy_settings.get('allow_data_sharing', False))
+
+if st.button("💾 Sauvegarder les paramètres de confidentialité"):
     user_info['privacy_settings'] = {
         'allow_analytics': allow_analytics,
         'allow_notifications': allow_notifications,
         'allow_data_sharing': allow_data_sharing
     }
     st.success("Paramètres de confidentialité sauvegardés !")
+
 else:
     st.info("👈 Veuillez vous connecter pour accéder à Safe Job Hub AI")
     
