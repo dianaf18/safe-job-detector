@@ -695,20 +695,18 @@ def main():
         if 'jobs_to_show_count' not in st.session_state:
             st.session_state.jobs_to_show_count = 10
 
-        # Onglets principaux
-        tab1, tab2, tab3, tab4, tab5 = st.tabs([
-            "🤖 IA Candidature", 
-            "📊 Dashboard IA", 
-            "👤 Profil & Config", 
-            "📋 Historique",
-            "🛡️ Sécurité"
-        ])
-        
-       with tab1:
+      # Onglets principaux
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    "🤖 IA Candidature",
+    "📊 Dashboard IA",
+    "👤 Profil & Config",
+    "📋 Historique",
+    "🛡️ Sécurité"
+])
+
+with tab1:
     st.header("🤖 Intelligence Artificielle de Candidature")
-
     # --- Ici, tu fais ta recherche IA, tu obtiens filtered_jobs (liste d'offres compatibles) ---
-
     jobs = filtered_jobs  # ou le nom de ta variable contenant les offres après recherche IA
 
     # Bloc affichage paginé :
@@ -723,23 +721,32 @@ def main():
         if st.button("Afficher 10 offres de plus"):
             st.session_state.jobs_to_show_count += 10
 
-            
-            # Configuration de l'IA
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.subheader("⚙️ Configuration de l'IA")
-                
-                ai_settings = user_info.get('ai_settings', {})
-                
-                auto_search = st.toggle("🔍 Recherche automatique quotidienne", 
-                                      value=ai_settings.get('auto_search_enabled', False))
-                auto_apply = st.toggle("🚀 Candidature automatique", 
-                                     value=ai_settings.get('auto_apply_enabled', False))
-                daily_limit = st.slider("📊 Candidatures max/jour", 1, 20, 
-                                       ai_settings.get('daily_application_limit', 5))
-                compatibility_threshold = st.slider("🎯 Seuil de compatibilité", 0.0, 1.0, 
-                                                   ai_settings.get('compatibility_threshold', 0.6))
+with tab2:
+    # Configuration de l'IA
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.subheader("⚙️ Configuration de l'IA")
+
+        ai_settings = user_info.get('ai_settings', {})
+
+        auto_search = st.toggle(
+            "🔍 Recherche automatique quotidienne",
+            value=ai_settings.get('auto_search_enabled', False)
+        )
+        auto_apply = st.toggle(
+            "🚀 Candidature automatique",
+            value=ai_settings.get('auto_apply_enabled', False)
+        )
+        daily_limit = st.slider(
+            "📊 Candidatures max/jour", 1, 20,
+            ai_settings.get('daily_application_limit', 5)
+        )
+        compatibility_threshold = st.slider(
+            "🎯 Seuil de compatibilité", 0.0, 1.0,
+            ai_settings.get('compatibility_threshold', 0.6)
+        )
+
                 
                 # Sauvegarder les paramètres
                 user_info['ai_settings'].update({
@@ -1287,6 +1294,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
