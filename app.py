@@ -772,101 +772,65 @@ with tab2:
             'salary_min': salary_min,
             'remote_preference': remote_ok
         })
-        # Test de l'IA
-        st.subheader("🧪 Test de l'IA de Candidature")
-        if st.button("🚀 Lancer une recherche IA test", type="primary"):
-            if not user_info.get('experience') or not user_info.get('skills'):
-                st.error("⚠️ Veuillez compléter votre profil (expérience et compétences) dans l'onglet 'Profil & Config'")
-            else:
-                with st.spinner("🤖 L'IA analyse votre profil et recherche des offres compatibles..."):
-                    # Analyse du profil utilisateur
-                    profile_ai = UserProfileAI()
-                    user_criteria = profile_ai.analyze_user_profile(
-                        user_info['experience'], 
-                        user_info['skills'], 
-                        ai_settings
-                    )
+       # Test de l'IA
+st.subheader("🧪 Test de l'IA de Candidature")
+if st.button("🚀 Lancer une recherche IA test", type="primary"):
+    if not user_info.get('experience') or not user_info.get('skills'):
+        st.error("⚠️ Veuillez compléter votre profil (expérience et compétences) dans l'onglet 'Profil & Config'")
+    else:
+        with st.spinner("🤖 L'IA analyse votre profil et recherche des offres compatibles..."):
+            # Analyse du profil utilisateur
+            profile_ai = UserProfileAI()
+            user_criteria = profile_ai.analyze_user_profile(
+                user_info['experience'], 
+                user_info['skills'], 
+                ai_settings
+            )
+            
+            # Recherche automatique
+            search_ai = AutoJobSearchAI()
+            filtered_jobs = search_ai.intelligent_job_search(user_criteria, "")
+            
+            # Candidature automatique (si activée)
+            applications_sent = []
+            if auto_apply and filtered_jobs:
+                applicant_ai = AutoApplicantAI()
+                applications_sent = applicant_ai.auto_apply_to_jobs(
+                    filtered_jobs, user_info, user_criteria, daily_limit
+                )
+            
+            # Affichage des résultats
+            if filtered_jobs:
+                st.success(f"🎉 L'IA a trouvé {len(filtered_jobs)} offres compatibles avec votre profil !")
+                
+                # Statistiques
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.metric("Offres analysées", len(filtered_jobs))
+                with col2:
+                    avg_score = sum(job['ai_score'] for job in filtered_jobs) / len(filtered_jobs)
+                    st.metric("Score moyen", f"{avg_score:.1%}")
+                with col3:
+                    st.metric("Candidatures envoyées", len(applications_sent))
+                with col4:
+                    remote_count = sum(1 for job in filtered_jobs if job['is_remote'])
+                    st.metric("Télétravail", remote_count)
+                
+                # Affichage des meilleures offres (top 10)
+                st.subheader("🏆 Top 10 des offres les plus compatibles")
+                for i, job in enumerate(filtered_jobs[:10]):
+                    compatibility_color = "#4CAF50" if job['ai_score'] >= 0.8 else "#FF9800" if job['ai_score'] >= 0.6 else "#F44336"
+                    with st.container():
+                        st.markdown(f"""
+                        <div class="ai-card">
+                            <h3>#{i+1} - {job['title']}</h3>
+                            <p><strong>🏢 {job['company']}</strong> • 📍 {job['location']} • 🌐 {job['source']}</p>
+                            <p>{job['description'][:200]}...</p>
+                            <p>💰 {job['salary']} • 📋 {job['type']} • 
+                            <span style="color: {compatibility_color};">🎯 Compatibilité: {job['ai_score']:.1%}</span></p>
+                        </div>
+                        """, unsafe
 
-
-                        
-                        # Recherche automatique
-                        search_ai = AutoJobSearchAI()
-                        filtered_jobs = search_ai.intelligent_job_search(user_criteria, "")
-                        
-                        # Candidature automatique (si activée)
-                        applications_sent = []
-                        if auto_apply and filtered_jobs:
-                            applicant_ai = AutoApplicantAI()
-                            applications_sent = applicant_ai.auto_apply_to_jobs(
-                                filtered_jobs, user_info, user_criteria, daily_limit
-                            )
-                        
-                        # Affichage des résultats
-                        if filtered_jobs:
-                            st.success(f"🎉 L'IA a trouvé {len(filtered_jobs)} offres compatibles avec votre profil !")
-                            
-                            # Statistiques
-                            col1, col2, col3, col4 = st.columns(4)
-                            with col1:
-                                st.metric("Offres analysées", len(filtered_jobs))
-                            with col2:
-                                avg_score = sum(job['ai_score'] for job in filtered_jobs) / len(filtered_jobs)
-                                st.metric("Score moyen", f"{avg_score:.1%}")
-                            with col3:
-                                st.metric("Candidatures envoyées", len(applications_sent))
-                            with col4:
-                                remote_count = sum(1 for job in filtered_jobs if job['is_remote'])
-                                st.metric("Télétravail", remote_count)
-                            
-                            # Affichage des meilleures offres
-                            st.subheader("🏆 Top 10 des offres les plus compatibles")
-                            
-                            for i, job in enumerate(filtered_jobs[:10]):
-                                compatibility_color = "#4CAF50" if job['ai_score'] >= 0.8 else "#FF9800" if job['ai_score'] >= 0.6 else "#F44336"
-                                
-                                with st.container():
-                                    st.markdown(f"""
-                                    <div class="ai-card">
-                                        <h3>#{i+1} - {job['title']}</h3>
-                                        <p><strong>🏢 {job['company']}</strong> • 📍 {job['location']} • 🌐 {job['source']}</p>
-                                        <p>{job['description'][:200]}...</p>
-                                        <p>💰 {job['salary']} • 📋 {job['type']} • 
-                                        <span style="color: {compatibility_color};">🎯 Compatibilité: {job['ai_score']:.1%}</span></p>
-                                    </div>
-                                    """, unsafe_allow_html=True)
-                                    
-                                    col1, col2, col3 = st.columns(3)
-                                    with col1:
-                                        if st.button(f"💾 Sauvegarder", key=f"save_ai_{i}"):
-                                            user_info['saved_jobs'].append(job)
-                                            st.success("Offre sauvegardée!")
-                                    
-                                    with col2:
-                                        if job.get('url'):
-                                            st.markdown(f"""
-                                            <a href="{job['url']}" target="_blank" class="ai-btn">
-                                                🌐 Voir l'offre
-                                            </a>
-                                            """, unsafe_allow_html=True)
-                                    
-                                    with col3:
-                                        if any(app['job']['title'] == job['title'] and app['job']['company'] == job['company'] for app in applications_sent):
-                                            st.success("✅ Candidature envoyée !")
-                                        else:
-                                            if st.button(f"🚀 Candidater", key=f"apply_ai_{i}"):
-                                                st.info("Candidature manuelle - Utilisez le mode automatique pour la candidature IA")
-                            
-                            # Mise à jour des statistiques
-                            user_info['ai_stats']['total_jobs_analyzed'] += len(filtered_jobs)
-                            user_info['ai_stats']['total_applications_sent'] += len(applications_sent)
-                            user_info['ai_stats']['last_activity_date'] = datetime.now().isoformat()
-                            
-                            # Historique des candidatures
-                            if applications_sent:
-                                user_info['applications_history'].extend(applications_sent)
-                        
-                        else:
-                            st.warning("Aucune offre compatible trouvée. Essayez d'élargir vos critères.")
         
         with tab2:
             st.header("📊 Dashboard Intelligence Artificielle")
@@ -1293,6 +1257,7 @@ with tab2:
 
 if __name__ == "__main__":
     main()
+
 
 
 
