@@ -1,4 +1,4 @@
-import streamlit as st
+fgimport streamlit as st
 import requests
 import re
 import json
@@ -718,6 +718,13 @@ if st.session_state.logged_in:
         search_ai = AutoJobSearchAI()
         filtered_jobs = search_ai.intelligent_job_search(user_criteria)
         jobs = filtered_jobs
+        # Debug : vérifier le contenu de filtered_jobs
+st.write(f"**DEBUG:** Nombre d'offres trouvées : {len(filtered_jobs)}")
+if filtered_jobs:
+    st.write("Première offre :", filtered_jobs[0])
+else:
+    st.error("Aucune offre trouvée ! Vérifiez vos critères et APIs.")
+
 
         # Bloc affichage paginé
         jobs_to_show = jobs[:st.session_state.jobs_to_show_count]
@@ -1268,6 +1275,7 @@ else:
 
 if __name__ == "__main__":
     main()
+
 
 
 
