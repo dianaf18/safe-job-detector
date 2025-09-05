@@ -689,7 +689,7 @@ def main():
                 logout_user()
                 st.rerun()
     
-    # Contenu principal
+   # Contenu principal
 if st.session_state.logged_in:
     user_info = st.session_state.users_db[st.session_state.current_user]
     if 'jobs_to_show_count' not in st.session_state:
@@ -706,8 +706,8 @@ if st.session_state.logged_in:
 
     with tab1:
         st.header("🤖 Intelligence Artificielle de Candidature")
-        # --- Ici, tu fais ta recherche IA, tu obtiens filtered_jobs (liste d'offres compatibles) ---
-        # Exemple, calculer filtered_jobs avant son utilisation 
+        
+        # Calcul des offres compatibles
         profile_ai = UserProfileAI()
         ai_settings = user_info.get('ai_settings', {})
         user_criteria = profile_ai.analyze_user_profile(
@@ -717,10 +717,9 @@ if st.session_state.logged_in:
         )
         search_ai = AutoJobSearchAI()
         filtered_jobs = search_ai.intelligent_job_search(user_criteria)
+        jobs = filtered_jobs
 
-        jobs = filtered_jobs  # ou le nom de ta variable contenant les offres après recherche IA
-
-        # Bloc affichage paginé :
+        # Bloc affichage paginé
         jobs_to_show = jobs[:st.session_state.jobs_to_show_count]
         st.subheader("🏆 Offres compatibles avec votre profil")
         for i, job in enumerate(jobs_to_show):
@@ -730,7 +729,7 @@ if st.session_state.logged_in:
             if st.button("Afficher 10 offres de plus"):
                 st.session_state.jobs_to_show_count += 10
 
-        # Test de l'IA (toujours dans tab1)
+        # Test de l'IA
         st.subheader("🧪 Test de l'IA de Candidature")
         if st.button("🚀 Lancer une recherche IA test", type="primary"):
             if not user_info.get('experience') or not user_info.get('skills'):
@@ -738,47 +737,47 @@ if st.session_state.logged_in:
             else:
                 with st.spinner("🤖 L'IA analyse votre profil et recherche des offres compatibles..."):
                     # Analyse du profil utilisateur
-                    profile_ai = UserProfileAI()
-                    user_criteria = profile_ai.analyze_user_profile(
-                        user_info['experience'], 
-                        user_info['skills'], 
+                    test_profile_ai = UserProfileAI()
+                    test_user_criteria = test_profile_ai.analyze_user_profile(
+                        user_info['experience'],
+                        user_info['skills'],
                         ai_settings
                     )
-
+                    
                     # Recherche automatique
-                    search_ai = AutoJobSearchAI()
-                    filtered_jobs = search_ai.intelligent_job_search(user_criteria, "")
-
+                    test_search_ai = AutoJobSearchAI()
+                    test_filtered_jobs = test_search_ai.intelligent_job_search(test_user_criteria, "")
+                    
                     # Candidature automatique (si activée)
                     applications_sent = []
                     auto_apply = ai_settings.get('auto_apply_enabled', False)
                     daily_limit = ai_settings.get('daily_application_limit', 5)
-                    if auto_apply and filtered_jobs:
+                    if auto_apply and test_filtered_jobs:
                         applicant_ai = AutoApplicantAI()
                         applications_sent = applicant_ai.auto_apply_to_jobs(
-                            filtered_jobs, user_info, user_criteria, daily_limit
+                            test_filtered_jobs, user_info, test_user_criteria, daily_limit
                         )
-
+                    
                     # Affichage des résultats
-                    if filtered_jobs:
-                        st.success(f"🎉 L'IA a trouvé {len(filtered_jobs)} offres compatibles avec votre profil !")
-
+                    if test_filtered_jobs:
+                        st.success(f"🎉 L'IA a trouvé {len(test_filtered_jobs)} offres compatibles avec votre profil !")
+                        
                         # Statistiques
                         col1, col2, col3, col4 = st.columns(4)
                         with col1:
-                            st.metric("Offres analysées", len(filtered_jobs))
+                            st.metric("Offres analysées", len(test_filtered_jobs))
                         with col2:
-                            avg_score = sum(job['ai_score'] for job in filtered_jobs) / len(filtered_jobs)
+                            avg_score = sum(job['ai_score'] for job in test_filtered_jobs) / len(test_filtered_jobs)
                             st.metric("Score moyen", f"{avg_score:.1%}")
                         with col3:
                             st.metric("Candidatures envoyées", len(applications_sent))
                         with col4:
-                            remote_count = sum(1 for job in filtered_jobs if job['is_remote'])
+                            remote_count = sum(1 for job in test_filtered_jobs if job['is_remote'])
                             st.metric("Télétravail", remote_count)
-
+                        
                         # Affichage des meilleures offres (top 10)
                         st.subheader("🏆 Top 10 des offres les plus compatibles")
-                        for i, job in enumerate(filtered_jobs[:10]):
+                        for i, job in enumerate(test_filtered_jobs[:10]):
                             compatibility_color = "#4CAF50" if job['ai_score'] >= 0.8 else "#FF9800" if job['ai_score'] >= 0.6 else "#F44336"
                             with st.container():
                                 st.markdown(f"""
@@ -791,503 +790,436 @@ if st.session_state.logged_in:
                                     </div>
                                 """, unsafe_allow_html=True)
 
-with tab2:
-    # Configuration de l'IA
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.subheader("⚙️ Configuration de l'IA")
-        ai_settings = user_info.get('ai_settings', {})
+    with tab2:
+        st.header("📊 Dashboard Intelligence Artificielle")
         
-        auto_search = st.toggle(
-            "🔍 Recherche automatique quotidienne",
-            value=ai_settings.get('auto_search_enabled', False)
-        )
-        auto_apply = st.toggle(
-            "🚀 Candidature automatique",
-            value=ai_settings.get('auto_apply_enabled', False)
-        )
-        daily_limit = st.slider(
-            "📊 Candidatures max/jour", 1, 20,
-            ai_settings.get('daily_application_limit', 5)
-        )
-        compatibility_threshold = st.slider(
-            "🎯 Seuil de compatibilité", 0.0, 1.0,
-            ai_settings.get('compatibility_threshold', 0.6)
-        )
-        # Sauvegarder les paramètres
-        user_info['ai_settings'].update({
-            'auto_search_enabled': auto_search,
-            'auto_apply_enabled': auto_apply,
-            'daily_application_limit': daily_limit,
-            'compatibility_threshold': compatibility_threshold
-        })
-    
-    with col2:
-        st.subheader("🎯 Critères de recherche")
+        # Configuration de l'IA
+        col1, col2 = st.columns(2)
         
-        job_types = st.multiselect(
-            "Types de postes",
-            ["CDI", "CDD", "Stage", "Freelance", "Interim"],
-            default=ai_settings.get('preferred_job_types', ["CDI"])
-        )
-        salary_min = st.number_input(
-            "💰 Salaire minimum (€)", 0, 100000,
-            ai_settings.get('salary_min', 30000)
-        )
-        remote_ok = st.checkbox(
-            "🏠 Télétravail accepté",
-            value=ai_settings.get('remote_preference', False)
-        )
-        # Sauvegarder les critères
-        user_info['ai_settings'].update({
-            'preferred_job_types': job_types,
-            'salary_min': salary_min,
-            'remote_preference': remote_ok
-        })
-       # Test de l'IA
-st.subheader("🧪 Test de l'IA de Candidature")
-if st.button("🚀 Lancer une recherche IA test", type="primary"):
-    if not user_info.get('experience') or not user_info.get('skills'):
-        st.error("⚠️ Veuillez compléter votre profil (expérience et compétences) dans l'onglet 'Profil & Config'")
-    else:
-        with st.spinner("🤖 L'IA analyse votre profil et recherche des offres compatibles..."):
-            # Analyse du profil utilisateur
-            profile_ai = UserProfileAI()
-            user_criteria = profile_ai.analyze_user_profile(
-                user_info['experience'], 
-                user_info['skills'], 
-                ai_settings
-            )
-            
-            # Recherche automatique
-            search_ai = AutoJobSearchAI()
-            filtered_jobs = search_ai.intelligent_job_search(user_criteria, "")
-            
-            # Candidature automatique (si activée)
-            applications_sent = []
-            if auto_apply and filtered_jobs:
-                applicant_ai = AutoApplicantAI()
-                applications_sent = applicant_ai.auto_apply_to_jobs(
-                    filtered_jobs, user_info, user_criteria, daily_limit
-                )
-            
-            # Affichage des résultats
-            if filtered_jobs:
-                st.success(f"🎉 L'IA a trouvé {len(filtered_jobs)} offres compatibles avec votre profil !")
-                
-                # Statistiques
-                col1, col2, col3, col4 = st.columns(4)
-                with col1:
-                    st.metric("Offres analysées", len(filtered_jobs))
-                with col2:
-                    avg_score = sum(job['ai_score'] for job in filtered_jobs) / len(filtered_jobs)
-                    st.metric("Score moyen", f"{avg_score:.1%}")
-                with col3:
-                    st.metric("Candidatures envoyées", len(applications_sent))
-                with col4:
-                    remote_count = sum(1 for job in filtered_jobs if job['is_remote'])
-                    st.metric("Télétravail", remote_count)
-                
-                # Affichage des meilleures offres (top 10)
-                st.subheader("🏆 Top 10 des offres les plus compatibles")
-                for i, job in enumerate(filtered_jobs[:10]):
-                    compatibility_color = "#4CAF50" if job['ai_score'] >= 0.8 else "#FF9800" if job['ai_score'] >= 0.6 else "#F44336"
-                    with st.container():
-                        st.markdown(f"""
-                            <div class="ai-card">
-                                <h3>#{i+1} - {job['title']}</h3>
-                                <p><strong>🏢 {job['company']}</strong> • 📍 {job['location']} • 🌐 {job['source']}</p>
-                                <p>{job['description'][:200]}...</p>
-                                <p>💰 {job['salary']} • 📋 {job['type']} • 
-                                <span style="color: {compatibility_color};">🎯 Compatibilité: {job['ai_score']:.1%}</span></p>
-                            </div>
-                        """, unsafe_allow_html=True)
-
-
-        
-        with tab2:
-            st.header("📊 Dashboard Intelligence Artificielle")
-            
-            ai_stats = user_info.get('ai_stats', {})
-            applications_history = user_info.get('applications_history', [])
-            
-            # Métriques principales
-            col1, col2, col3, col4 = st.columns(4)
-            
-            with col1:
-                st.metric("Offres analysées", ai_stats.get('total_jobs_analyzed', 0), 
-                         delta="+156 cette semaine" if ai_stats.get('total_jobs_analyzed', 0) > 0 else None)
-            
-            with col2:
-                st.metric("Candidatures envoyées", ai_stats.get('total_applications_sent', 0), 
-                         delta="+3 aujourd'hui" if ai_stats.get('total_applications_sent', 0) > 0 else None)
-            
-            with col3:
-                # Simulation de réponses reçues
-                responses = min(ai_stats.get('total_applications_sent', 0) // 3, 15)
-                st.metric("Réponses reçues", responses, 
-                         delta="+2 cette semaine" if responses > 0 else None)
-            
-            with col4:
-                # Simulation d'entretiens obtenus
-                interviews = min(responses // 3, 5)
-                st.metric("Entretiens obtenus", interviews, 
-                         delta="+1 cette semaine" if interviews > 0 else None)
-            
-            # Graphiques de performance
-            if applications_history:
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    # Graphique des candidatures par jour
-                    dates = []
-                    counts = []
-                    
-                    # Simuler des données pour les 7 derniers jours
-                    for i in range(7):
-                        date = datetime.now() - timedelta(days=6-i)
-                        dates.append(date.strftime("%d/%m"))
-                        # Simulation de données basée sur l'historique
-                        count = random.randint(0, min(5, len(applications_history)))
-                        counts.append(count)
-                    
-                    fig = px.line(x=dates, y=counts, 
-                                 title="📈 Candidatures par jour (7 derniers jours)")
-                    fig.update_traces(line_color='#2E8B57', line_width=3)
-                    st.plotly_chart(fig, use_container_width=True)
-                
-                with col2:
-                    # Taux de compatibilité des candidatures
-                    if applications_history:
-                        scores = [app['job']['ai_score'] for app in applications_history[-20:]]  # 20 dernières
-                        score_ranges = ['Faible (0-60%)', 'Moyen (60-80%)', 'Élevé (80-100%)']
-                        score_counts = [
-                            sum(1 for s in scores if s < 0.6),
-                            sum(1 for s in scores if 0.6 <= s < 0.8),
-                            sum(1 for s in scores if s >= 0.8)
-                        ]
-                        
-                        fig = px.pie(values=score_counts, names=score_ranges,
-                                    title="🎯 Répartition des scores de compatibilité")
-                        fig.update_traces(textposition='inside', textinfo='percent+label')
-                        st.plotly_chart(fig, use_container_width=True)
-            
-            # Rapport quotidien IA
-            if ai_stats.get('last_activity_date'):
-                st.subheader("📋 Rapport IA du jour")
-                
-                notification_system = NotificationSystemAI()
-                daily_report = notification_system.generate_daily_report(
-                    applications_history[-10:] if applications_history else [], 
-                    []  # Jobs analyzed today
-                )
-                
-                st.markdown(f"""
-                <div class="notification-card">
-                    <h4>🤖 Rapport IA - {daily_report['date']}</h4>
-                    <p><strong>📊 Activité :</strong> {daily_report['applications_sent']} candidatures envoyées</p>
-                    <p><strong>🎯 Score moyen :</strong> {daily_report['avg_compatibility']:.1%}</p>
-                    <p><strong>🏢 Entreprises ciblées :</strong> {', '.join(daily_report['top_companies'][:3]) if daily_report['top_companies'] else 'Aucune'}</p>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                if daily_report['recommendations']:
-                    st.subheader("💡 Recommandations IA")
-                    for rec in daily_report['recommendations']:
-                        st.markdown(f"""
-                        <div class="warning-notification">
-                            {rec}
-                        </div>
-                        """, unsafe_allow_html=True)
-        
-        with tab3:
-            st.header("👤 Profil Utilisateur & Configuration IA")
-            
-            # Profil utilisateur pour l'IA
-            with st.form("ai_profile_form"):
-                st.subheader("🧠 Profil pour l'IA")
-                
-                col1, col2 = st.columns(2)
-                with col1:
-                    name = st.text_input("Nom complet", value=user_info.get('name', ''))
-                    phone = st.text_input("Téléphone", value=user_info.get('phone', ''))
-                    email_display = st.text_input("Email", value=st.session_state.current_user, disabled=True)
-                
-                with col2:
-                    address = st.text_area("Adresse", value=user_info.get('address', ''))
-                    
-                st.subheader("💼 Expérience professionnelle (pour l'IA)")
-                experience = st.text_area("Décrivez votre expérience (l'IA analysera ce texte)", 
-                                        value=user_info.get('experience', ''), 
-                                        height=100,
-                                        help="Plus vous êtes précis, mieux l'IA pourra vous matcher avec des offres pertinentes")
-                
-                st.subheader("🎯 Compétences (pour l'IA)")
-                skills_input = st.text_input("Compétences (séparées par des virgules)", 
-                                           value=", ".join(user_info.get('skills', [])),
-                                           help="L'IA utilisera ces compétences pour calculer la compatibilité")
-                
-                st.subheader("📄 CV pour candidatures automatiques")
-                uploaded_file = st.file_uploader("Télécharger votre CV (utilisé par l'IA)", type=['pdf', 'doc', 'docx'])
-                
-                if st.form_submit_button("💾 Sauvegarder le profil IA", type="primary"):
-                    user_info['name'] = name
-                    user_info['phone'] = phone
-                    user_info['address'] = address
-                    user_info['experience'] = experience
-                    user_info['skills'] = [skill.strip() for skill in skills_input.split(',') if skill.strip()]
-                    
-                    if uploaded_file:
-                        user_info['cv_uploaded'] = True
-                    
-                    # Analyse automatique du profil par l'IA
-                    if experience and skills_input:
-                        profile_ai = UserProfileAI()
-                        ai_profile = profile_ai.analyze_user_profile(
-                            experience, 
-                            user_info['skills'], 
-                            user_info.get('ai_settings', {})
-                        )
-                        user_info['ai_profile'] = ai_profile
-                        
-                        st.success("✅ Profil sauvegardé et analysé par l'IA !")
-                        
-                        # Affichage de l'analyse IA
-                        st.subheader("🤖 Analyse IA de votre profil")
-                        st.markdown(f"""
-                        <div class="success-notification">
-                            <h4>🎯 Domaine principal détecté : <strong>{ai_profile['main_domain'].title()}</strong></h4>
-                            <p><strong>📊 Niveau d'expérience :</strong> {ai_profile['experience_level'].title()}</p>
-                            <p><strong>🔍 Mots-clés pour la recherche :</strong> {', '.join(ai_profile['keywords'])}</p>
-                            <p><strong>🎯 Seuil de compatibilité :</strong> {ai_profile['compatibility_threshold']:.0%}</p>
-                        </div>
-                        """, unsafe_allow_html=True)
-                    else:
-                        st.success("Profil sauvegardé ! Complétez l'expérience et les compétences pour l'analyse IA.")
-            
-            # Configuration avancée de l'IA
-            st.subheader("⚙️ Configuration avancée de l'IA")
-            
+        with col1:
+            st.subheader("⚙️ Configuration de l'IA")
             ai_settings = user_info.get('ai_settings', {})
             
+            auto_search = st.toggle(
+                "🔍 Recherche automatique quotidienne",
+                value=ai_settings.get('auto_search_enabled', False)
+            )
+            auto_apply = st.toggle(
+                "🚀 Candidature automatique",
+                value=ai_settings.get('auto_apply_enabled', False)
+            )
+            daily_limit = st.slider(
+                "📊 Candidatures max/jour", 1, 20,
+                ai_settings.get('daily_application_limit', 5)
+            )
+            compatibility_threshold = st.slider(
+                "🎯 Seuil de compatibilité", 0.0, 1.0,
+                ai_settings.get('compatibility_threshold', 0.6)
+            )
+            # Sauvegarder les paramètres
+            user_info['ai_settings'].update({
+                'auto_search_enabled': auto_search,
+                'auto_apply_enabled': auto_apply,
+                'daily_application_limit': daily_limit,
+                'compatibility_threshold': compatibility_threshold
+            })
+        
+        with col2:
+            st.subheader("🎯 Critères de recherche")
+            
+            job_types = st.multiselect(
+                "Types de postes",
+                ["CDI", "CDD", "Stage", "Freelance", "Interim"],
+                default=ai_settings.get('preferred_job_types', ["CDI"])
+            )
+            salary_min = st.number_input(
+                "💰 Salaire minimum (€)", 0, 100000,
+                ai_settings.get('salary_min', 30000)
+            )
+            remote_ok = st.checkbox(
+                "🏠 Télétravail accepté",
+                value=ai_settings.get('remote_preference', False)
+            )
+            # Sauvegarder les critères
+            user_info['ai_settings'].update({
+                'preferred_job_types': job_types,
+                'salary_min': salary_min,
+                'remote_preference': remote_ok
+            })
+
+        # Statistiques IA
+        ai_stats = user_info.get('ai_stats', {})
+        applications_history = user_info.get('applications_history', [])
+        
+        # Métriques principales
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.metric("Offres analysées", ai_stats.get('total_jobs_analyzed', 0), 
+                     delta="+156 cette semaine" if ai_stats.get('total_jobs_analyzed', 0) > 0 else None)
+        
+        with col2:
+            st.metric("Candidatures envoyées", ai_stats.get('total_applications_sent', 0), 
+                     delta="+3 aujourd'hui" if ai_stats.get('total_applications_sent', 0) > 0 else None)
+        
+        with col3:
+            # Simulation de réponses reçues
+            responses = min(ai_stats.get('total_applications_sent', 0) // 3, 15)
+            st.metric("Réponses reçues", responses, 
+                     delta="+2 cette semaine" if responses > 0 else None)
+        
+        with col4:
+            # Simulation d'entretiens obtenus
+            interviews = min(responses // 3, 5)
+            st.metric("Entretiens obtenus", interviews, 
+                     delta="+1 cette semaine" if interviews > 0 else None)
+        
+        # Graphiques de performance
+        if applications_history:
             col1, col2 = st.columns(2)
             
             with col1:
-                st.write("**🕐 Planification des recherches**")
-                search_frequency = st.selectbox("Fréquence de recherche automatique", 
-                                              ["Quotidienne", "Tous les 2 jours", "Hebdomadaire"],
-                                              index=0)
-                search_time = st.time_input("Heure de recherche", value=datetime.now().time().replace(hour=9, minute=0))
+                # Graphique des candidatures par jour
+                dates = []
+                counts = []
                 
+                # Simuler des données pour les 7 derniers jours
+                for i in range(7):
+                    date = datetime.now() - timedelta(days=6-i)
+                    dates.append(date.strftime("%d/%m"))
+                    # Simulation de données basée sur l'historique
+                    count = random.randint(0, min(5, len(applications_history)))
+                    counts.append(count)
+                
+                fig = px.line(x=dates, y=counts, 
+                             title="📈 Candidatures par jour (7 derniers jours)")
+                fig.update_traces(line_color='#2E8B57', line_width=3)
+                st.plotly_chart(fig, use_container_width=True)
+            
             with col2:
-                st.write("**🎯 Critères de qualité**")
-                min_company_size = st.selectbox("Taille d'entreprise minimum", 
-                                              ["Toutes", "Startup", "PME", "Grande entreprise"],
-                                              index=0)
-                avoid_keywords = st.text_input("Mots-clés à éviter", 
-                                             placeholder="Ex: stage, bénévole, commission")
-            
-            if st.button("💾 Sauvegarder la configuration avancée"):
-                user_info['ai_settings'].update({
-                    'search_frequency': search_frequency,
-                    'search_time': search_time.strftime("%H:%M"),
-                    'min_company_size': min_company_size,
-                    'avoid_keywords': avoid_keywords.split(',') if avoid_keywords else []
-                })
-                st.success("Configuration avancée sauvegardée !")
-        
-        with tab4:
-            st.header("📋 Historique des Candidatures IA")
-            
-            applications_history = user_info.get('applications_history', [])
-            
-            if applications_history:
-                st.subheader(f"📊 {len(applications_history)} candidatures envoyées par l'IA")
-                
-                # Filtres
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    filter_company = st.selectbox("Filtrer par entreprise", 
-                                                 ["Toutes"] + list(set([app['job']['company'] for app in applications_history])))
-                with col2:
-                    filter_score = st.selectbox("Filtrer par score", 
-                                               ["Tous", "Élevé (80%+)", "Moyen (60-80%)", "Faible (<60%)"])
-                with col3:
-                    filter_date = st.selectbox("Période", 
-                                             ["Toutes", "Aujourd'hui", "Cette semaine", "Ce mois"])
-                
-                # Affichage des candidatures
-                filtered_applications = applications_history.copy()
-                
-                # Application des filtres
-                if filter_company != "Toutes":
-                    filtered_applications = [app for app in filtered_applications if app['job']['company'] == filter_company]
-                
-                if filter_score != "Tous":
-                    if filter_score == "Élevé (80%+)":
-                        filtered_applications = [app for app in filtered_applications if app['job']['ai_score'] >= 0.8]
-                    elif filter_score == "Moyen (60-80%)":
-                        filtered_applications = [app for app in filtered_applications if 0.6 <= app['job']['ai_score'] < 0.8]
-                    elif filter_score == "Faible (<60%)":
-                        filtered_applications = [app for app in filtered_applications if app['job']['ai_score'] < 0.6]
-                
-                st.write(f"**{len(filtered_applications)} candidatures** (après filtres)")
-                
-                for i, app in enumerate(filtered_applications[-20:]):  # 20 dernières
-                    job = app['job']
-                    sent_date = datetime.fromisoformat(app['sent_date']) if isinstance(app['sent_date'], str) else app['sent_date']
+                # Taux de compatibilité des candidatures
+                if applications_history:
+                    scores = [app['job']['ai_score'] for app in applications_history[-20:]]  # 20 dernières
+                    score_ranges = ['Faible (0-60%)', 'Moyen (60-80%)', 'Élevé (80-100%)']
+                    score_counts = [
+                        sum(1 for s in scores if s < 0.6),
+                        sum(1 for s in scores if 0.6 <= s < 0.8),
+                        sum(1 for s in scores if s >= 0.8)
+                    ]
                     
-                    # Simulation du statut
-                    days_since = (datetime.now() - sent_date).days
-                    if days_since == 0:
-                        status = "📤 Envoyée aujourd'hui"
-                        status_color = "#2196f3"
-                    elif days_since <= 3:
+                    fig = px.pie(values=score_counts, names=score_ranges,
+                                title="🎯 Répartition des scores de compatibilité")
+                    fig.update_traces(textposition='inside', textinfo='percent+label')
+                    st.plotly_chart(fig, use_container_width=True)
+        
+        # Rapport quotidien IA
+        if ai_stats.get('last_activity_date'):
+            st.subheader("📋 Rapport IA du jour")
+            
+            notification_system = NotificationSystemAI()
+            daily_report = notification_system.generate_daily_report(
+                applications_history[-10:] if applications_history else [], 
+                []  # Jobs analyzed today
+            )
+            
+            st.markdown(f"""
+            <div class="notification-card">
+                <h4>🤖 Rapport IA - {daily_report['date']}</h4>
+                <p><strong>📊 Activité :</strong> {daily_report['applications_sent']} candidatures envoyées</p>
+                <p><strong>🎯 Score moyen :</strong> {daily_report['avg_compatibility']:.1%}</p>
+                <p><strong>🏢 Entreprises ciblées :</strong> {', '.join(daily_report['top_companies'][:3]) if daily_report['top_companies'] else 'Aucune'}</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            if daily_report['recommendations']:
+                st.subheader("💡 Recommandations IA")
+                for rec in daily_report['recommendations']:
+                    st.markdown(f"""
+                    <div class="warning-notification">
+                        {rec}
+                    </div>
+                    """, unsafe_allow_html=True)
+
+    with tab3:
+        st.header("👤 Profil Utilisateur & Configuration IA")
+        
+        # Profil utilisateur pour l'IA
+        with st.form("ai_profile_form"):
+            st.subheader("🧠 Profil pour l'IA")
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                name = st.text_input("Nom complet", value=user_info.get('name', ''))
+                phone = st.text_input("Téléphone", value=user_info.get('phone', ''))
+                email_display = st.text_input("Email", value=st.session_state.current_user, disabled=True)
+            
+            with col2:
+                address = st.text_area("Adresse", value=user_info.get('address', ''))
+                
+            st.subheader("💼 Expérience professionnelle (pour l'IA)")
+            experience = st.text_area("Décrivez votre expérience (l'IA analysera ce texte)", 
+                                    value=user_info.get('experience', ''), 
+                                    height=100,
+                                    help="Plus vous êtes précis, mieux l'IA pourra vous matcher avec des offres pertinentes")
+            
+            st.subheader("🎯 Compétences (pour l'IA)")
+            skills_input = st.text_input("Compétences (séparées par des virgules)", 
+                                       value=", ".join(user_info.get('skills', [])),
+                                       help="L'IA utilisera ces compétences pour calculer la compatibilité")
+            
+            st.subheader("📄 CV pour candidatures automatiques")
+            uploaded_file = st.file_uploader("Télécharger votre CV (utilisé par l'IA)", type=['pdf', 'doc', 'docx'])
+            
+            if st.form_submit_button("💾 Sauvegarder le profil IA", type="primary"):
+                user_info['name'] = name
+                user_info['phone'] = phone
+                user_info['address'] = address
+                user_info['experience'] = experience
+                user_info['skills'] = [skill.strip() for skill in skills_input.split(',') if skill.strip()]
+                
+                if uploaded_file:
+                    user_info['cv_uploaded'] = True
+                
+                # Analyse automatique du profil par l'IA
+                if experience and skills_input:
+                    profile_ai = UserProfileAI()
+                    ai_profile = profile_ai.analyze_user_profile(
+                        experience, 
+                        user_info['skills'], 
+                        user_info.get('ai_settings', {})
+                    )
+                    user_info['ai_profile'] = ai_profile
+                    
+                    st.success("✅ Profil sauvegardé et analysé par l'IA !")
+                    
+                    # Affichage de l'analyse IA
+                    st.subheader("🤖 Analyse IA de votre profil")
+                    st.markdown(f"""
+                    <div class="success-notification">
+                        <h4>🎯 Domaine principal détecté : <strong>{ai_profile['main_domain'].title()}</strong></h4>
+                        <p><strong>📊 Niveau d'expérience :</strong> {ai_profile['experience_level'].title()}</p>
+                        <p><strong>🔍 Mots-clés pour la recherche :</strong> {', '.join(ai_profile['keywords'])}</p>
+                        <p><strong>🎯 Seuil de compatibilité :</strong> {ai_profile['compatibility_threshold']:.0%}</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.success("Profil sauvegardé ! Complétez l'expérience et les compétences pour l'analyse IA.")
+        
+        # Configuration avancée de l'IA
+        st.subheader("⚙️ Configuration avancée de l'IA")
+        
+        ai_settings = user_info.get('ai_settings', {})
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.write("**🕐 Planification des recherches**")
+            search_frequency = st.selectbox("Fréquence de recherche automatique", 
+                                          ["Quotidienne", "Tous les 2 jours", "Hebdomadaire"],
+                                          index=0)
+            search_time = st.time_input("Heure de recherche", value=datetime.now().time().replace(hour=9, minute=0))
+            
+        with col2:
+            st.write("**🎯 Critères de qualité**")
+            min_company_size = st.selectbox("Taille d'entreprise minimum", 
+                                          ["Toutes", "Startup", "PME", "Grande entreprise"],
+                                          index=0)
+            avoid_keywords = st.text_input("Mots-clés à éviter", 
+                                         placeholder="Ex: stage, bénévole, commission")
+        
+        if st.button("💾 Sauvegarder la configuration avancée"):
+            user_info['ai_settings'].update({
+                'search_frequency': search_frequency,
+                'search_time': search_time.strftime("%H:%M"),
+                'min_company_size': min_company_size,
+                'avoid_keywords': avoid_keywords.split(',') if avoid_keywords else []
+            })
+            st.success("Configuration avancée sauvegardée !")
+
+    with tab4:
+        st.header("📋 Historique des Candidatures IA")
+        
+        applications_history = user_info.get('applications_history', [])
+        
+        if applications_history:
+            st.subheader(f"📊 {len(applications_history)} candidatures envoyées par l'IA")
+            
+            # Filtres
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                filter_company = st.selectbox("Filtrer par entreprise", 
+                                             ["Toutes"] + list(set([app['job']['company'] for app in applications_history])))
+            with col2:
+                filter_score = st.selectbox("Filtrer par score", 
+                                           ["Tous", "Élevé (80%+)", "Moyen (60-80%)", "Faible (<60%)"])
+            with col3:
+                filter_date = st.selectbox("Période", 
+                                         ["Toutes", "Aujourd'hui", "Cette semaine", "Ce mois"])
+            
+            # Affichage des candidatures
+            filtered_applications = applications_history.copy()
+            
+            # Application des filtres
+            if filter_company != "Toutes":
+                filtered_applications = [app for app in filtered_applications if app['job']['company'] == filter_company]
+            
+            if filter_score != "Tous":
+                if filter_score == "Élevé (80%+)":
+                    filtered_applications = [app for app in filtered_applications if app['job']['ai_score'] >= 0.8]
+                elif filter_score == "Moyen (60-80%)":
+                    filtered_applications = [app for app in filtered_applications if 0.6 <= app['job']['ai_score'] < 0.8]
+                elif filter_score == "Faible (<60%)":
+                    filtered_applications = [app for app in filtered_applications if app['job']['ai_score'] < 0.6]
+            
+            st.write(f"**{len(filtered_applications)} candidatures** (après filtres)")
+            
+            for i, app in enumerate(filtered_applications[-20:]):  # 20 dernières
+                job = app['job']
+                sent_date = datetime.fromisoformat(app['sent_date']) if isinstance(app['sent_date'], str) else app['sent_date']
+                
+                # Simulation du statut
+                days_since = (datetime.now() - sent_date).days
+                if days_since == 0:
+                    status = "📤 Envoyée aujourd'hui"
+                    status_color = "#2196f3"
+                elif days_since <= 3:
+                    status = "⏳ En attente"
+                    status_color = "#ff9800"
+                elif days_since <= 7:
+                    if random.random() < 0.3:  # 30% de chance de réponse
+                        status = "📧 Réponse reçue"
+                        status_color = "#4caf50"
+                    else:
                         status = "⏳ En attente"
                         status_color = "#ff9800"
-                    elif days_since <= 7:
-                        if random.random() < 0.3:  # 30% de chance de réponse
-                            status = "📧 Réponse reçue"
-                            status_color = "#4caf50"
-                        else:
-                            status = "⏳ En attente"
-                            status_color = "#ff9800"
+                else:
+                    if random.random() < 0.1:  # 10% de chance de réponse tardive
+                        status = "📧 Réponse reçue"
+                        status_color = "#4caf50"
                     else:
-                        if random.random() < 0.1:  # 10% de chance de réponse tardive
-                            status = "📧 Réponse reçue"
-                            status_color = "#4caf50"
-                        else:
-                            status = "❌ Pas de réponse"
-                            status_color = "#f44336"
+                        status = "❌ Pas de réponse"
+                        status_color = "#f44336"
+                
+                compatibility_color = "#4CAF50" if job['ai_score'] >= 0.8 else "#FF9800" if job['ai_score'] >= 0.6 else "#F44336"
+                
+                with st.expander(f"📋 {job['title']} - {job['company']} ({sent_date.strftime('%d/%m/%Y')})"):
+                    col1, col2 = st.columns([2, 1])
                     
-                    compatibility_color = "#4CAF50" if job['ai_score'] >= 0.8 else "#FF9800" if job['ai_score'] >= 0.6 else "#F44336"
+                    with col1:
+                        st.write(f"**🏢 Entreprise :** {job['company']}")
+                        st.write(f"**📍 Localisation :** {job['location']}")
+                        st.write(f"**💰 Salaire :** {job['salary']}")
+                        st.write(f"**🌐 Source :** {job['source']}")
+                        st.write(f"**📄 Description :** {job['description'][:200]}...")
                     
-                    with st.expander(f"📋 {job['title']} - {job['company']} ({sent_date.strftime('%d/%m/%Y')})"):
-                        col1, col2 = st.columns([2, 1])
+                    with col2:
+                        st.markdown(f"""
+                        <div style="text-align: center; padding: 1rem; background: {compatibility_color}; color: white; border-radius: 8px; margin-bottom: 1rem;">
+                            <h4>🎯 Compatibilité</h4>
+                            <h2>{job['ai_score']:.0%}</h2>
+                        </div>
+                        """, unsafe_allow_html=True)
                         
-                        with col1:
-                            st.write(f"**🏢 Entreprise :** {job['company']}")
-                            st.write(f"**📍 Localisation :** {job['location']}")
-                            st.write(f"**💰 Salaire :** {job['salary']}")
-                            st.write(f"**🌐 Source :** {job['source']}")
-                            st.write(f"**📄 Description :** {job['description'][:200]}...")
+                        st.markdown(f"""
+                        <div style="text-align: center; padding: 1rem; background: {status_color}; color: white; border-radius: 8px;">
+                            <strong>{status}</strong>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    
+                    # Affichage de la candidature générée
+                    if st.button(f"👁️ Voir la candidature IA", key=f"view_app_{i}"):
+                        st.subheader("📄 CV adapté par l'IA")
+                        st.text_area("CV généré", app['application']['cv'], height=200, disabled=True)
                         
-                        with col2:
-                            st.markdown(f"""
-                            <div style="text-align: center; padding: 1rem; background: {compatibility_color}; color: white; border-radius: 8px; margin-bottom: 1rem;">
-                                <h4>🎯 Compatibilité</h4>
-                                <h2>{job['ai_score']:.0%}</h2>
-                            </div>
-                            """, unsafe_allow_html=True)
-                            
-                            st.markdown(f"""
-                            <div style="text-align: center; padding: 1rem; background: {status_color}; color: white; border-radius: 8px;">
-                                <strong>{status}</strong>
-                            </div>
-                            """, unsafe_allow_html=True)
-                        
-                        # Affichage de la candidature générée
-                        if st.button(f"👁️ Voir la candidature IA", key=f"view_app_{i}"):
-                            st.subheader("📄 CV adapté par l'IA")
-                            st.text_area("CV généré", app['application']['cv'], height=200, disabled=True)
-                            
-                            st.subheader("✉️ Lettre de motivation générée par l'IA")
-                            st.text_area("Lettre générée", app['application']['cover_letter'], height=200, disabled=True)
+                        st.subheader("✉️ Lettre de motivation générée par l'IA")
+                        st.text_area("Lettre générée", app['application']['cover_letter'], height=200, disabled=True)
+        else:
+            st.info("Aucune candidature envoyée par l'IA pour le moment. Activez la candidature automatique pour commencer !")
+
+    with tab5:
+        st.header("🛡️ Sécurité & Confidentialité")
+        
+        st.subheader("🔐 Gestion des accès")
+        
+        # Informations de sécurité
+        st.markdown("""
+        <div class="notification-card">
+            <h4>🔒 Sécurité de vos données</h4>
+            <p>• Toutes vos données sont chiffrées et stockées de manière sécurisée</p>
+            <p>• L'IA n'accède qu'aux informations nécessaires pour les candidatures</p>
+            <p>• Vous pouvez supprimer toutes vos données à tout moment</p>
+            <p>• Aucune donnée n'est partagée avec des tiers sans votre consentement</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Gestion des données
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("📊 Vos données")
             
-            # ... code précédent ...
-
-# Bloc else (niveau indentation 8 espaces dans ton code)
-else:
-    st.info("Aucune candidature envoyée par l'IA pour le moment. Activez la candidature automatique pour commencer !")
-
-with tab5:
-    st.header("🛡️ Sécurité & Confidentialité")
-    
-    st.subheader("🔐 Gestion des accès")
-    
-    # Informations de sécurité
-    st.markdown("""
-    <div class="notification-card">
-        <h4>🔒 Sécurité de vos données</h4>
-        <p>• Toutes vos données sont chiffrées et stockées de manière sécurisée</p>
-        <p>• L'IA n'accède qu'aux informations nécessaires pour les candidatures</p>
-        <p>• Vous pouvez supprimer toutes vos données à tout moment</p>
-        <p>• Aucune donnée n'est partagée avec des tiers sans votre consentement</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    
-    # Gestion des données
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.subheader("📊 Vos données")
+            if st.button("📥 Exporter mes données"):
+                # Créer un export JSON des données utilisateur
+                export_data = {
+                    'profile': {
+                        'name': user_info.get('name', ''),
+                        'experience': user_info.get('experience', ''),
+                        'skills': user_info.get('skills', [])
+                    },
+                    'ai_stats': user_info.get('ai_stats', {}),
+                    'applications_count': len(user_info.get('applications_history', [])),
+                    'export_date': datetime.now().isoformat()
+                }
+                
+                st.download_button(
+                    label="💾 Télécharger mes données",
+                    data=json.dumps(export_data, indent=2, ensure_ascii=False),
+                    file_name=f"safe_job_hub_data_{datetime.now().strftime('%Y%m%d')}.json",
+                    mime="application/json"
+                )
         
-        if st.button("📥 Exporter mes données"):
-            # Créer un export JSON des données utilisateur
-            export_data = {
-                'profile': {
-                    'name': user_info.get('name', ''),
-                    'experience': user_info.get('experience', ''),
-                    'skills': user_info.get('skills', [])
-                },
-                'ai_stats': user_info.get('ai_stats', {}),
-                'applications_count': len(user_info.get('applications_history', [])),
-                'export_date': datetime.now().isoformat()
-            }
+        with col2:
+            st.subheader("🗑️ Suppression des données")
             
-            st.download_button(
-                label="💾 Télécharger mes données",
-                data=json.dumps(export_data, indent=2, ensure_ascii=False),
-                file_name=f"safe_job_hub_data_{datetime.now().strftime('%Y%m%d')}.json",
-                mime="application/json"
-            )
-    
-    with col2:
-        st.subheader("🗑️ Suppression des données")
+            st.warning("⚠️ **Attention** : Cette action est irréversible")
+            
+            if st.button("🗑️ Supprimer l'historique des candidatures", type="secondary"):
+                user_info['applications_history'] = []
+                user_info['ai_stats'] = {
+                    "total_jobs_analyzed": 0,
+                    "total_applications_sent": 0,
+                    "total_responses_received": 0,
+                    "total_interviews_obtained": 0,
+                    "last_activity_date": None
+                }
+                st.success("Historique supprimé !")
+            
+            if st.button("❌ Supprimer tout mon compte", type="secondary"):
+                if st.session_state.current_user in st.session_state.users_db:
+                    del st.session_state.users_db[st.session_state.current_user]
+                    logout_user()
+                    st.success("Compte supprimé ! Redirection...")
+                    time.sleep(2)
+                    st.rerun()
         
-        st.warning("⚠️ **Attention** : Cette action est irréversible")
+        # Paramètres de confidentialité
+        st.subheader("🔧 Paramètres de confidentialité")
         
-        if st.button("🗑️ Supprimer l'historique des candidatures", type="secondary"):
-            user_info['applications_history'] = []
-            user_info['ai_stats'] = {
-                "total_jobs_analyzed": 0,
-                "total_applications_sent": 0,
-                "total_responses_received": 0,
-                "total_interviews_obtained": 0,
-                "last_activity_date": None
+        privacy_settings = user_info.get('privacy_settings', {})
+        allow_analytics = st.checkbox("📊 Autoriser l'analyse anonyme pour améliorer l'IA", 
+                                     value=privacy_settings.get('allow_analytics', True))
+        allow_notifications = st.checkbox("📧 Recevoir des notifications par email", 
+                                          value=privacy_settings.get('allow_notifications', True))
+        allow_data_sharing = st.checkbox("🤝 Partager des statistiques anonymes avec les partenaires", 
+                                         value=privacy_settings.get('allow_data_sharing', False))
+        
+        if st.button("💾 Sauvegarder les paramètres de confidentialité"):
+            user_info['privacy_settings'] = {
+                'allow_analytics': allow_analytics,
+                'allow_notifications': allow_notifications,
+                'allow_data_sharing': allow_data_sharing
             }
-            st.success("Historique supprimé !")
-        
-        if st.button("❌ Supprimer tout mon compte", type="secondary"):
-            if st.session_state.current_user in st.session_state.users_db:
-                del st.session_state.users_db[st.session_state.current_user]
-                logout_user()
-                st.success("Compte supprimé ! Redirection...")
-                time.sleep(2)
-                st.rerun()
-    
-    # Paramètres de confidentialité
-    # Paramètres de confidentialité
-st.subheader("🔧 Paramètres de confidentialité")
-
-privacy_settings = user_info.get('privacy_settings', {})
-
-allow_analytics = st.checkbox("📊 Autoriser l'analyse anonyme pour améliorer l'IA", 
-                             value=privacy_settings.get('allow_analytics', True))
-allow_notifications = st.checkbox("📧 Recevoir des notifications par email", 
-                                  value=privacy_settings.get('allow_notifications', True))
-allow_data_sharing = st.checkbox("🤝 Partager des statistiques anonymes avec les partenaires", 
-                                 value=privacy_settings.get('allow_data_sharing', False))
-
-if st.button("💾 Sauvegarder les paramètres de confidentialité"):
-    user_info['privacy_settings'] = {
-        'allow_analytics': allow_analytics,
-        'allow_notifications': allow_notifications,
-        'allow_data_sharing': allow_data_sharing
-    }
-    st.success("Paramètres de confidentialité sauvegardés !")
+            st.success("Paramètres de confidentialité sauvegardés !")
 
 else:
     st.info("👈 Veuillez vous connecter pour accéder à Safe Job Hub AI")
@@ -1336,6 +1268,8 @@ else:
 
 if __name__ == "__main__":
     main()
+
+
 
 
 
