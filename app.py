@@ -689,7 +689,7 @@ def main():
                 logout_user()
                 st.rerun()
     
-   # Contenu principal
+# Contenu principal
 if st.session_state.logged_in:
     user_info = st.session_state.users_db[st.session_state.current_user]
     if 'jobs_to_show_count' not in st.session_state:
@@ -704,67 +704,66 @@ if st.session_state.logged_in:
         "🛡️ Sécurité"
     ])
 
-with tab1:
-    st.header("🤖 Intelligence Artificielle de Candidature")
-    
-    # Calcul des offres compatibles
-    profile_ai = UserProfileAI()
-    ai_settings = user_info.get('ai_settings', {})
-    user_criteria = profile_ai.analyze_user_profile(
-        user_info['experience'],
-        user_info['skills'],
-        ai_settings
-    )
-    search_ai = AutoJobSearchAI()
-    filtered_jobs = search_ai.intelligent_job_search(user_criteria)
-    jobs = filtered_jobs
-    
-    # Debug : vérifier le contenu de filtered_jobs
-    st.write(f"**DEBUG:** Nombre d'offres trouvées : {len(filtered_jobs)}")
-    if filtered_jobs:
-        st.write("Première offre :", filtered_jobs[0])
-    else:
-        st.error("Aucune offre trouvée ! Vérifiez vos critères et APIs.")
-    
-    # Bloc affichage paginé
-    jobs_to_show = jobs[:st.session_state.jobs_to_show_count]
-    st.subheader("🏆 Offres compatibles avec votre profil")
-    for i, job in enumerate(jobs_to_show):
-        st.write(f"{i+1}. {job['title']} - {job['company']} - {job['location']}")
-    
-    if st.session_state.jobs_to_show_count < len(jobs):
-        if st.button("Afficher 10 offres de plus"):
-            st.session_state.jobs_to_show_count += 10
-    
-    # Test de l'IA
-    st.subheader("🧪 Test de l'IA de Candidature")
-    if st.button("🚀 Lancer une recherche IA test", type="primary"):
-        if not user_info.get('experience') or not user_info.get('skills'):
-            st.error("⚠️ Veuillez compléter votre profil (expérience et compétences) dans l'onglet 'Profil & Config'")
+    with tab1:
+        st.header("🤖 Intelligence Artificielle de Candidature")
+        
+        # Calcul des offres compatibles
+        profile_ai = UserProfileAI()
+        ai_settings = user_info.get('ai_settings', {})
+        user_criteria = profile_ai.analyze_user_profile(
+            user_info['experience'],
+            user_info['skills'],
+            ai_settings
+        )
+        search_ai = AutoJobSearchAI()
+        filtered_jobs = search_ai.intelligent_job_search(user_criteria)
+        jobs = filtered_jobs
+        
+        # Debug : vérifier le contenu de filtered_jobs
+        st.write(f"**DEBUG:** Nombre d'offres trouvées : {len(filtered_jobs)}")
+        if filtered_jobs:
+            st.write("Première offre :", filtered_jobs[0])
         else:
-            with st.spinner("🤖 L'IA analyse votre profil et recherche des offres compatibles..."):
-                # Analyse du profil utilisateur
-                test_profile_ai = UserProfileAI()
-                test_user_criteria = test_profile_ai.analyze_user_profile(
-                    user_info['experience'],
-                    user_info['skills'],
-                    ai_settings
-                )
-                
-                # Recherche automatique
-                test_search_ai = AutoJobSearchAI()
-                test_filtered_jobs = test_search_ai.intelligent_job_search(test_user_criteria, "")
-                
-                # Candidature automatique (si activée)
-                applications_sent = []
-                auto_apply = ai_settings.get('auto_apply_enabled', False)
-                daily_limit = ai_settings.get('daily_application_limit', 5)
-                if auto_apply and test_filtered_jobs:
-                    applicant_ai = AutoApplicantAI()
-                    applications_sent = applicant_ai.auto_apply_to_jobs(
-                        test_filtered_jobs, user_info, test_user_criteria, daily_limit
+            st.error("Aucune offre trouvée ! Vérifiez vos critères et APIs.")
+        
+        # Bloc affichage paginé
+        jobs_to_show = jobs[:st.session_state.jobs_to_show_count]
+        st.subheader("🏆 Offres compatibles avec votre profil")
+        for i, job in enumerate(jobs_to_show):
+            st.write(f"{i+1}. {job['title']} - {job['company']} - {job['location']}")
+        
+        if st.session_state.jobs_to_show_count < len(jobs):
+            if st.button("Afficher 10 offres de plus"):
+                st.session_state.jobs_to_show_count += 10
+        
+        # Test de l'IA
+        st.subheader("🧪 Test de l'IA de Candidature")
+        if st.button("🚀 Lancer une recherche IA test", type="primary"):
+            if not user_info.get('experience') or not user_info.get('skills'):
+                st.error("⚠️ Veuillez compléter votre profil (expérience et compétences) dans l'onglet 'Profil & Config'")
+            else:
+                with st.spinner("🤖 L'IA analyse votre profil et recherche des offres compatibles..."):
+                    # Analyse du profil utilisateur
+                    test_profile_ai = UserProfileAI()
+                    test_user_criteria = test_profile_ai.analyze_user_profile(
+                        user_info['experience'],
+                        user_info['skills'],
+                        ai_settings
                     )
-
+                    
+                    # Recherche automatique
+                    test_search_ai = AutoJobSearchAI()
+                    test_filtered_jobs = test_search_ai.intelligent_job_search(test_user_criteria, "")
+                    
+                    # Candidature automatique (si activée)
+                    applications_sent = []
+                    auto_apply = ai_settings.get('auto_apply_enabled', False)
+                    daily_limit = ai_settings.get('daily_application_limit', 5)
+                    if auto_apply and test_filtered_jobs:
+                        applicant_ai = AutoApplicantAI()
+                        applications_sent = applicant_ai.auto_apply_to_jobs(
+                            test_filtered_jobs, user_info, test_user_criteria, daily_limit
+                        )
                     
                     # Affichage des résultats
                     if test_filtered_jobs:
@@ -1221,19 +1220,6 @@ with tab1:
         allow_data_sharing = st.checkbox("🤝 Partager des statistiques anonymes avec les partenaires", 
                                          value=privacy_settings.get('allow_data_sharing', False))
         
-
-
-        # Paramètres de confidentialité
-        st.subheader("🔧 Paramètres de confidentialité")
-        
-        privacy_settings = user_info.get('privacy_settings', {})
-        allow_analytics = st.checkbox("📊 Autoriser l'analyse anonyme...", 
-                                     value=privacy_settings.get('allow_analytics', True))
-        allow_notifications = st.checkbox("📧 Recevoir des notifications...", 
-                                          value=privacy_settings.get('allow_notifications', True))
-        allow_data_sharing = st.checkbox("🤝 Partager des statistiques...", 
-                                         value=privacy_settings.get('allow_data_sharing', False))
-        
         if st.button("💾 Sauvegarder les paramètres de confidentialité"):
             user_info['privacy_settings'] = {
                 'allow_analytics': allow_analytics,
@@ -1242,8 +1228,8 @@ with tab1:
             }
             st.success("Paramètres de confidentialité sauvegardés !")
 
-# BLOC POUR UTILISATEURS NON CONNECTÉS (à placer APRÈS la fin du bloc connecté)
-        else:
+# BLOC POUR UTILISATEURS NON CONNECTÉS
+else:
     st.info("👈 Veuillez vous connecter pour accéder à Safe Job Hub AI")
     
     st.header("🤖 Safe Job Hub AI - Votre Assistant Emploi Intelligent")
@@ -1290,6 +1276,8 @@ with tab1:
 
 if __name__ == "__main__":
     main()
+
+
 
 
 
