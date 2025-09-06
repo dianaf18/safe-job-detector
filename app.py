@@ -751,21 +751,20 @@ with tab1:
                     ai_settings
                 )
                 
+                # Recherche automatique
+                test_search_ai = AutoJobSearchAI()
+                test_filtered_jobs = test_search_ai.intelligent_job_search(test_user_criteria, "")
+                
+                # Candidature automatique (si activée)
+                applications_sent = []
+                auto_apply = ai_settings.get('auto_apply_enabled', False)
+                daily_limit = ai_settings.get('daily_application_limit', 5)
+                if auto_apply and test_filtered_jobs:
+                    applicant_ai = AutoApplicantAI()
+                    applications_sent = applicant_ai.auto_apply_to_jobs(
+                        test_filtered_jobs, user_info, test_user_criteria, daily_limit
+                    )
 
-                    
-                    # Recherche automatique
-                    test_search_ai = AutoJobSearchAI()
-                    test_filtered_jobs = test_search_ai.intelligent_job_search(test_user_criteria, "")
-                    
-                    # Candidature automatique (si activée)
-                    applications_sent = []
-                    auto_apply = ai_settings.get('auto_apply_enabled', False)
-                    daily_limit = ai_settings.get('daily_application_limit', 5)
-                    if auto_apply and test_filtered_jobs:
-                        applicant_ai = AutoApplicantAI()
-                        applications_sent = applicant_ai.auto_apply_to_jobs(
-                            test_filtered_jobs, user_info, test_user_criteria, daily_limit
-                        )
                     
                     # Affichage des résultats
                     if test_filtered_jobs:
@@ -1277,6 +1276,7 @@ else:
 
 if __name__ == "__main__":
     main()
+
 
 
 
