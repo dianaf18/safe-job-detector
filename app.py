@@ -704,52 +704,54 @@ if st.session_state.logged_in:
         "🛡️ Sécurité"
     ])
 
-    with tab1:
-        st.header("🤖 Intelligence Artificielle de Candidature")
-        
-        # Calcul des offres compatibles
-        profile_ai = UserProfileAI()
-        ai_settings = user_info.get('ai_settings', {})
-        user_criteria = profile_ai.analyze_user_profile(
-            user_info['experience'],
-            user_info['skills'],
-            ai_settings
-        )
-        search_ai = AutoJobSearchAI()
-        filtered_jobs = search_ai.intelligent_job_search(user_criteria)
-        jobs = filtered_jobs
-        # Debug : vérifier le contenu de filtered_jobs
-st.write(f"**DEBUG:** Nombre d'offres trouvées : {len(filtered_jobs)}")
-if filtered_jobs:
-    st.write("Première offre :", filtered_jobs[0])
-else:
-    st.error("Aucune offre trouvée ! Vérifiez vos critères et APIs.")
+with tab1:
+    st.header("🤖 Intelligence Artificielle de Candidature")
+    
+    # Calcul des offres compatibles
+    profile_ai = UserProfileAI()
+    ai_settings = user_info.get('ai_settings', {})
+    user_criteria = profile_ai.analyze_user_profile(
+        user_info['experience'],
+        user_info['skills'],
+        ai_settings
+    )
+    search_ai = AutoJobSearchAI()
+    filtered_jobs = search_ai.intelligent_job_search(user_criteria)
+    jobs = filtered_jobs
+    
+    # Debug : vérifier le contenu de filtered_jobs
+    st.write(f"**DEBUG:** Nombre d'offres trouvées : {len(filtered_jobs)}")
+    if filtered_jobs:
+        st.write("Première offre :", filtered_jobs[0])
+    else:
+        st.error("Aucune offre trouvée ! Vérifiez vos critères et APIs.")
+    
+    # Bloc affichage paginé
+    jobs_to_show = jobs[:st.session_state.jobs_to_show_count]
+    st.subheader("🏆 Offres compatibles avec votre profil")
+    for i, job in enumerate(jobs_to_show):
+        st.write(f"{i+1}. {job['title']} - {job['company']} - {job['location']}")
+    
+    if st.session_state.jobs_to_show_count < len(jobs):
+        if st.button("Afficher 10 offres de plus"):
+            st.session_state.jobs_to_show_count += 10
+    
+    # Test de l'IA
+    st.subheader("🧪 Test de l'IA de Candidature")
+    if st.button("🚀 Lancer une recherche IA test", type="primary"):
+        if not user_info.get('experience') or not user_info.get('skills'):
+            st.error("⚠️ Veuillez compléter votre profil (expérience et compétences) dans l'onglet 'Profil & Config'")
+        else:
+            with st.spinner("🤖 L'IA analyse votre profil et recherche des offres compatibles..."):
+                # Analyse du profil utilisateur
+                test_profile_ai = UserProfileAI()
+                test_user_criteria = test_profile_ai.analyze_user_profile(
+                    user_info['experience'],
+                    user_info['skills'],
+                    ai_settings
+                )
+                
 
-
-        # Bloc affichage paginé
-        jobs_to_show = jobs[:st.session_state.jobs_to_show_count]
-        st.subheader("🏆 Offres compatibles avec votre profil")
-        for i, job in enumerate(jobs_to_show):
-            st.write(f"{i+1}. {job['title']} - {job['company']} - {job['location']}")
-        
-        if st.session_state.jobs_to_show_count < len(jobs):
-            if st.button("Afficher 10 offres de plus"):
-                st.session_state.jobs_to_show_count += 10
-
-        # Test de l'IA
-        st.subheader("🧪 Test de l'IA de Candidature")
-        if st.button("🚀 Lancer une recherche IA test", type="primary"):
-            if not user_info.get('experience') or not user_info.get('skills'):
-                st.error("⚠️ Veuillez compléter votre profil (expérience et compétences) dans l'onglet 'Profil & Config'")
-            else:
-                with st.spinner("🤖 L'IA analyse votre profil et recherche des offres compatibles..."):
-                    # Analyse du profil utilisateur
-                    test_profile_ai = UserProfileAI()
-                    test_user_criteria = test_profile_ai.analyze_user_profile(
-                        user_info['experience'],
-                        user_info['skills'],
-                        ai_settings
-                    )
                     
                     # Recherche automatique
                     test_search_ai = AutoJobSearchAI()
@@ -1275,6 +1277,7 @@ else:
 
 if __name__ == "__main__":
     main()
+
 
 
 
