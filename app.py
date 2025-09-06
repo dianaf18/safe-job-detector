@@ -1243,7 +1243,7 @@ with tab1:
             st.success("Paramètres de confidentialité sauvegardés !")
 
 # BLOC POUR UTILISATEURS NON CONNECTÉS (à placer APRÈS la fin du bloc connecté)
-else:
+        else:
     st.info("👈 Veuillez vous connecter pour accéder à Safe Job Hub AI")
     
     st.header("🤖 Safe Job Hub AI - Votre Assistant Emploi Intelligent")
@@ -1290,6 +1290,7 @@ else:
 
 if __name__ == "__main__":
     main()
+
 
 
 
