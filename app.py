@@ -1221,6 +1221,19 @@ with tab1:
         allow_data_sharing = st.checkbox("🤝 Partager des statistiques anonymes avec les partenaires", 
                                          value=privacy_settings.get('allow_data_sharing', False))
         
+
+
+        # Paramètres de confidentialité
+        st.subheader("🔧 Paramètres de confidentialité")
+        
+        privacy_settings = user_info.get('privacy_settings', {})
+        allow_analytics = st.checkbox("📊 Autoriser l'analyse anonyme...", 
+                                     value=privacy_settings.get('allow_analytics', True))
+        allow_notifications = st.checkbox("📧 Recevoir des notifications...", 
+                                          value=privacy_settings.get('allow_notifications', True))
+        allow_data_sharing = st.checkbox("🤝 Partager des statistiques...", 
+                                         value=privacy_settings.get('allow_data_sharing', False))
+        
         if st.button("💾 Sauvegarder les paramètres de confidentialité"):
             user_info['privacy_settings'] = {
                 'allow_analytics': allow_analytics,
@@ -1229,6 +1242,7 @@ with tab1:
             }
             st.success("Paramètres de confidentialité sauvegardés !")
 
+# BLOC POUR UTILISATEURS NON CONNECTÉS (à placer APRÈS la fin du bloc connecté)
 else:
     st.info("👈 Veuillez vous connecter pour accéder à Safe Job Hub AI")
     
