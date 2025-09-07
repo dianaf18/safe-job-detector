@@ -1236,7 +1236,14 @@ with tab1:
         allow_data_sharing = st.checkbox("🤝 Partager des statistiques anonymes avec les partenaires", 
                                          value=privacy_settings.get('allow_data_sharing', False))
         
-        # Dans l'onglet Sécurité (tab5)
+        # Structure principale de votre application
+if st.session_state.logged_in:
+    user_info = st.session_state.users_db[st.session_state.current_user]
+    
+    # Tous vos onglets tab1, tab2, tab3, tab4, tab5...
+    
+    with tab5:
+        # Dans l'onglet Sécurité
         if st.button("💾 Sauvegarder les paramètres de confidentialité"):
             user_info['privacy_settings'] = {
                 'allow_analytics': allow_analytics,
@@ -1244,11 +1251,10 @@ with tab1:
                 'allow_data_sharing': allow_data_sharing
             }
             st.success("Paramètres de confidentialité sauvegardés !")
-        
-        # FIN du bloc tab5 et de tous les onglets utilisateurs connectés
+    
+    # FIN de tous les onglets utilisateurs connectés
 
-# BLOC POUR UTILISATEURS NON CONNECTÉS
-else:  # ← Ce else correspond au if st.session_state.logged_in: principal
+else:  # ← Aligné avec le if st.session_state.logged_in: (pas d'indentation)
     st.info("👈 Veuillez vous connecter pour accéder à Safe Job Hub AI")
     
     st.header("🤖 Safe Job Hub AI - Votre Assistant Emploi Intelligent")
@@ -1282,6 +1288,7 @@ else:  # ← Ce else correspond au if st.session_state.logged_in: principal
         </div>
         """, unsafe_allow_html=True)
 
+
     
     st.markdown("""
     ## 🚀 Fonctionnalités de l'IA
@@ -1296,6 +1303,7 @@ else:  # ← Ce else correspond au if st.session_state.logged_in: principal
 
 if __name__ == "__main__":
     main()
+
 
 
 
