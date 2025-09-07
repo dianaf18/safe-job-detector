@@ -694,7 +694,7 @@ if st.session_state.logged_in:
     user_info = st.session_state.users_db[st.session_state.current_user]
     if 'jobs_to_show_count' not in st.session_state:
         st.session_state.jobs_to_show_count = 10
-
+    
     # Onglets principaux
     tab1, tab2, tab3, tab4, tab5 = st.tabs([
         "🤖 IA Candidature",
@@ -703,49 +703,49 @@ if st.session_state.logged_in:
         "📋 Historique",
         "🛡️ Sécurité"
     ])
-
     
-with tab1:
-    st.header("🤖 Intelligence Artificielle de Candidature")
-    
-    # Calcul des offres compatibles
-    profile_ai = UserProfileAI()
-    ai_settings = user_info.get('ai_settings', {})
-    user_criteria = profile_ai.analyze_user_profile(
-        user_info['experience'],
-        user_info['skills'],
-        ai_settings
-    )
-    search_ai = AutoJobSearchAI()
-    filtered_jobs = search_ai.intelligent_job_search(user_criteria)
-    jobs = filtered_jobs
-    
-    # Debug : vérifier le contenu de filtered_jobs
-    st.write(f"**DEBUG:** Nombre d'offres trouvées : {len(filtered_jobs)}")
-    if filtered_jobs:
-        st.write("Première offre :", filtered_jobs[0])
-    else:
-        st.error("Aucune offre trouvée ! Vérifiez vos critères et APIs.")
-    
-    # Bloc affichage paginé
-    jobs_to_show = jobs[:st.session_state.jobs_to_show_count]
-    st.subheader("🏆 Offres compatibles avec votre profil")
-    
-    for i, job in enumerate(jobs_to_show):
-        col1, col2 = st.columns([3, 1])  # ← Indenté de 4 espaces sous le 'for'
-        with col1:                        # ← Indenté de 4 espaces
-            st.markdown(f"**{i+1}. {job['title']}** - {job['company']} - {job['location']}")
-            st.write(job['description'][:100] + "...")
-        with col2:                        # ← Indenté de 4 espaces
-            st.link_button("🔗 Voir l'offre", job['url'])
-            st.write(f"💰 {job['salary']}")
-        st.divider()
+    with tab1:
+        st.header("🤖 Intelligence Artificielle de Candidature")
         
+        # Calcul des offres compatibles
+        profile_ai = UserProfileAI()
+        ai_settings = user_info.get('ai_settings', {})
+        user_criteria = profile_ai.analyze_user_profile(
+            user_info['experience'],
+            user_info['skills'],
+            ai_settings
+        )
+        search_ai = AutoJobSearchAI()
+        filtered_jobs = search_ai.intelligent_job_search(user_criteria)
+        jobs = filtered_jobs
+        
+        # Debug : vérifier le contenu de filtered_jobs
+        st.write(f"**DEBUG:** Nombre d'offres trouvées : {len(filtered_jobs)}")
+        if filtered_jobs:
+            st.write("Première offre :", filtered_jobs[0])
+        else:
+            st.error("Aucune offre trouvée ! Vérifiez vos critères et APIs.")
+        
+        # Bloc affichage paginé
+        jobs_to_show = jobs[:st.session_state.jobs_to_show_count]
+        st.subheader("🏆 Offres compatibles avec votre profil")
+        
+        for i, job in enumerate(jobs_to_show):
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                st.markdown(f"**{i+1}. {job['title']}** - {job['company']} - {job['location']}")
+                st.write(job['description'][:100] + "...")
+            with col2:
+                st.link_button("🔗 Voir l'offre", job['url'])
+                st.write(f"💰 {job['salary']}")
+            st.divider()
+        
+        # Bouton "Afficher plus" - HORS de la boucle
         if st.session_state.jobs_to_show_count < len(jobs):
             if st.button("Afficher 10 offres de plus"):
                 st.session_state.jobs_to_show_count += 10
         
-        # Test de l'IA
+        # Test de l'IA - HORS de la boucle
         st.subheader("🧪 Test de l'IA de Candidature")
         if st.button("🚀 Lancer une recherche IA test", type="primary"):
             if not user_info.get('experience') or not user_info.get('skills'):
@@ -862,6 +862,7 @@ with tab1:
                 'salary_min': salary_min,
                 'remote_preference': remote_ok
             })
+        
         # Mise à jour automatique des statistiques avec les offres trouvées
         if 'filtered_jobs' in locals() and filtered_jobs:
             # Mettre à jour les stats AI avec les nouvelles offres
@@ -875,7 +876,6 @@ with tab1:
         
         # Métriques principales
         col1, col2, col3, col4 = st.columns(4)
-
         
         with col1:
             st.metric("Offres analysées", ai_stats.get('total_jobs_analyzed', 0), 
@@ -1236,14 +1236,6 @@ with tab1:
         allow_data_sharing = st.checkbox("🤝 Partager des statistiques anonymes avec les partenaires", 
                                          value=privacy_settings.get('allow_data_sharing', False))
         
-        # Structure principale de votre application
-if st.session_state.logged_in:
-    user_info = st.session_state.users_db[st.session_state.current_user]
-    
-    # Tous vos onglets tab1, tab2, tab3, tab4, tab5...
-    
-    with tab5:
-        # Dans l'onglet Sécurité
         if st.button("💾 Sauvegarder les paramètres de confidentialité"):
             user_info['privacy_settings'] = {
                 'allow_analytics': allow_analytics,
@@ -1251,10 +1243,9 @@ if st.session_state.logged_in:
                 'allow_data_sharing': allow_data_sharing
             }
             st.success("Paramètres de confidentialité sauvegardés !")
-    
-    # FIN de tous les onglets utilisateurs connectés
 
-else:  # ← Aligné avec le if st.session_state.logged_in: (pas d'indentation)
+# BLOC POUR UTILISATEURS NON CONNECTÉS
+else:
     st.info("👈 Veuillez vous connecter pour accéder à Safe Job Hub AI")
     
     st.header("🤖 Safe Job Hub AI - Votre Assistant Emploi Intelligent")
@@ -1287,8 +1278,6 @@ else:  # ← Aligné avec le if st.session_state.logged_in: (pas d'indentation)
             <p>Suivi en temps réel de vos candidatures</p>
         </div>
         """, unsafe_allow_html=True)
-
-
     
     st.markdown("""
     ## 🚀 Fonctionnalités de l'IA
@@ -1303,6 +1292,7 @@ else:  # ← Aligné avec le if st.session_state.logged_in: (pas d'indentation)
 
 if __name__ == "__main__":
     main()
+
 
 
 
