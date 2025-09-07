@@ -1236,6 +1236,7 @@ with tab1:
         allow_data_sharing = st.checkbox("🤝 Partager des statistiques anonymes avec les partenaires", 
                                          value=privacy_settings.get('allow_data_sharing', False))
         
+        # Dans l'onglet Sécurité (tab5)
         if st.button("💾 Sauvegarder les paramètres de confidentialité"):
             user_info['privacy_settings'] = {
                 'allow_analytics': allow_analytics,
@@ -1243,9 +1244,11 @@ with tab1:
                 'allow_data_sharing': allow_data_sharing
             }
             st.success("Paramètres de confidentialité sauvegardés !")
+        
+        # FIN du bloc tab5 et de tous les onglets utilisateurs connectés
 
 # BLOC POUR UTILISATEURS NON CONNECTÉS
-else:
+else:  # ← Ce else correspond au if st.session_state.logged_in: principal
     st.info("👈 Veuillez vous connecter pour accéder à Safe Job Hub AI")
     
     st.header("🤖 Safe Job Hub AI - Votre Assistant Emploi Intelligent")
@@ -1278,6 +1281,7 @@ else:
             <p>Suivi en temps réel de vos candidatures</p>
         </div>
         """, unsafe_allow_html=True)
+
     
     st.markdown("""
     ## 🚀 Fonctionnalités de l'IA
@@ -1292,6 +1296,7 @@ else:
 
 if __name__ == "__main__":
     main()
+
 
 
 
