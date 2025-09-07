@@ -704,41 +704,42 @@ if st.session_state.logged_in:
         "🛡️ Sécurité"
     ])
 
-    with tab1:
-        st.header("🤖 Intelligence Artificielle de Candidature")
-        
-        # Calcul des offres compatibles
-        profile_ai = UserProfileAI()
-        ai_settings = user_info.get('ai_settings', {})
-        user_criteria = profile_ai.analyze_user_profile(
-            user_info['experience'],
-            user_info['skills'],
-            ai_settings
-        )
-        search_ai = AutoJobSearchAI()
-        filtered_jobs = search_ai.intelligent_job_search(user_criteria)
-        jobs = filtered_jobs
-        
-        # Debug : vérifier le contenu de filtered_jobs
-        st.write(f"**DEBUG:** Nombre d'offres trouvées : {len(filtered_jobs)}")
-        if filtered_jobs:
-            st.write("Première offre :", filtered_jobs[0])
-        else:
-            st.error("Aucune offre trouvée ! Vérifiez vos critères et APIs.")
-        
-        # Bloc affichage paginé
-        jobs_to_show = jobs[:st.session_state.jobs_to_show_count]
-        st.subheader("🏆 Offres compatibles avec votre profil")
-        for i, job in enumerate(jobs_to_show):
-    col1, col2 = st.columns([3, 1])
-    with col1:
-        st.markdown(f"**{i+1}. {job['title']}** - {job['company']} - {job['location']}")
-        st.write(job['description'][:100] + "...")
-    with col2:
-        st.link_button("🔗 Voir l'offre", job['url'])
-        st.write(f"💰 {job['salary']}")
-    st.divider()
-
+    
+with tab1:
+    st.header("🤖 Intelligence Artificielle de Candidature")
+    
+    # Calcul des offres compatibles
+    profile_ai = UserProfileAI()
+    ai_settings = user_info.get('ai_settings', {})
+    user_criteria = profile_ai.analyze_user_profile(
+        user_info['experience'],
+        user_info['skills'],
+        ai_settings
+    )
+    search_ai = AutoJobSearchAI()
+    filtered_jobs = search_ai.intelligent_job_search(user_criteria)
+    jobs = filtered_jobs
+    
+    # Debug : vérifier le contenu de filtered_jobs
+    st.write(f"**DEBUG:** Nombre d'offres trouvées : {len(filtered_jobs)}")
+    if filtered_jobs:
+        st.write("Première offre :", filtered_jobs[0])
+    else:
+        st.error("Aucune offre trouvée ! Vérifiez vos critères et APIs.")
+    
+    # Bloc affichage paginé
+    jobs_to_show = jobs[:st.session_state.jobs_to_show_count]
+    st.subheader("🏆 Offres compatibles avec votre profil")
+    
+    for i, job in enumerate(jobs_to_show):
+        col1, col2 = st.columns([3, 1])  # ← Indenté de 4 espaces sous le 'for'
+        with col1:                        # ← Indenté de 4 espaces
+            st.markdown(f"**{i+1}. {job['title']}** - {job['company']} - {job['location']}")
+            st.write(job['description'][:100] + "...")
+        with col2:                        # ← Indenté de 4 espaces
+            st.link_button("🔗 Voir l'offre", job['url'])
+            st.write(f"💰 {job['salary']}")
+        st.divider()
         
         if st.session_state.jobs_to_show_count < len(jobs):
             if st.button("Afficher 10 offres de plus"):
@@ -1290,6 +1291,7 @@ else:
 
 if __name__ == "__main__":
     main()
+
 
 
 
