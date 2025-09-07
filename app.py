@@ -863,18 +863,19 @@ with tab1:
                 'remote_preference': remote_ok
             })
         # Mise à jour automatique des statistiques avec les offres trouvées
-if 'filtered_jobs' in locals() and filtered_jobs:
-    # Mettre à jour les stats AI avec les nouvelles offres
-    user_info.setdefault('ai_stats', {})
-    user_info['ai_stats']['total_jobs_analyzed'] = len(filtered_jobs)
-    user_info['ai_stats']['last_activity_date'] = datetime.now().isoformat()
-
+        if 'filtered_jobs' in locals() and filtered_jobs:
+            # Mettre à jour les stats AI avec les nouvelles offres
+            user_info.setdefault('ai_stats', {})
+            user_info['ai_stats']['total_jobs_analyzed'] = len(filtered_jobs)
+            user_info['ai_stats']['last_activity_date'] = datetime.now().isoformat()
+        
         # Statistiques IA
         ai_stats = user_info.get('ai_stats', {})
         applications_history = user_info.get('applications_history', [])
         
         # Métriques principales
         col1, col2, col3, col4 = st.columns(4)
+
         
         with col1:
             st.metric("Offres analysées", ai_stats.get('total_jobs_analyzed', 0), 
@@ -1291,6 +1292,7 @@ else:
 
 if __name__ == "__main__":
     main()
+
 
 
 
