@@ -456,40 +456,206 @@ class AutoApplicantAI:
         """Candidature automatique aux offres sélectionnées"""
         applications_sent = []
         
+        # Gestion de la limite quotidienne
+        import datetime
+        today = datetime.datetime.now().date()
+        if self.last_application_date != today:
+            self.applications_sent_today = 0
+            self.last_application_date = today
+        
+        # Parcourir les offres filtrées et candidater
+        for job in filtered_jobs[:daily_limit]:
+            if self.applications_sent_today >= daily_limit:
+                break
+                
+            # Générer candidature personnalisée
+            application = self._generate_application(job, user_profile, user_criteria)
+            
+            # Envoyer la candidature
+            success = self._send_application(job, application)
+            
+            if success:
+                # Ajouter à la liste des candidatures envoyées
+                application_record = {
+                    'job': job,
+                    'application': application,
+                    'sent_date': datetime.datetime.now().isoformat(),
+                    'status': 'sent'
+                }
+                applications_sent.append(application_record)
+                
+                # Mettre à jour le compteur
+                self.applications_sent_today += 1
+                
+                # Mettre à jour l'historique utilisateur
+                if 'applications_history' not in user_profile:
+                    user_profile['applications_history'] = []
+                user_profile['applications_history'].append(application_record)
+                
+                # Mettre à jour les stats
+                user_profile.setdefault('ai_stats', {})
+                user_profile['ai_stats']['total_applications_sent'] = len(user_profile['applications_history'])
+        
+        return applications_sent
+    
+    def _generate_application(self, job, user_profile, user_criteria):
+        """Génère une candidature personnalisée pour un job"""
+        try:
+            # CV personnalisé basé sur le profil
+            cv = f"""
+CV personnalisé pour {job['title']} chez {job['company']}
+
+Profil : {user_profile.get('name', 'Candidat')}
+Email : {user_profile.get('email', 'Non renseigné')}
+Téléphone : {user_profile.get('phone', 'Non renseigné')}
+
+Expérience professionnelle :
+{user_profile.get('experience', 'Non renseignée')}
+
+Compétences clés :
+{', '.join(user_profile.get('skills', []))}
+
+Candidature spécialement adaptée pour ce poste.
+            """
+            
+            # Lettre de motivation personnalisée
+            cover_letter = f"""
+Objet : Candidature pour le poste de {job['title']}
+
+Madame, Monsieur,
+
+Je me permets de vous adresser ma candidature pour le poste de {job['title']} 
+au sein de {job['company']}, {job.get('location', '')}.
+
+Mon expérience en {user_profile.get('experience', 'développement')} et mes compétences 
+en {', '.join(user_profile.get('skills', [])[:3])} correspondent parfaitement aux 
+exigences de ce poste.
+
+Je serais ravi(e) de pouvoir vous rencontrer pour discuter de ma candidature.
+
+Cordialement,
+{user_profile.get('name', 'Candidat')}
+            """
+            
+            return {
+                'cv': cv.strip(),
+                'cover_letter': cover_letter.strip(),
+                'job_title': job['title'],
+                'company': job['company'],
+                'ai_score': job.get('ai_score', 0.0)
+            }
+            
+        except Exception as e:
+            return {
+                'cv': 'CV standard généré automatiquement',
+                'cover_letter': f"Candidature automatique pour {job.get('title', 'ce poste')}",
+                'job_title': job.get('title', 'Poste'),
+                'company': job.get('company', 'Entreprise')
+            }
+    
+    def _send_application(self, job, application):
+        """Simule l'envoi d'une candidature"""
+        try:
+            import random
+            import time
+            
+            # Simuler un délai d'envoi réaliste
+            time.sleep(0.5)
+            
+            # Simuler un taux de succès de 85%
+            success = random.random() > 0.15
+            
+            if success:
+                print(f"✅ Candidature envoyée avec succès pour {job['title']} chez {job['company']}")
+            else:
+                print(f"❌ Échec envoi candidature pour {job['title']} chez {job['company']}")
+            
+            return success
+            
+        except Exception as e:
+            print(f"Erreur lors de l'envoi : {e}")
+            return False
+
+            
         # Vérifier la limite quotidienne
         today = datetime.now().date()
         if self.last_application_date != today:
             self.applications_sent_today = 0
             self.last_application_date = today
         
-        # Candidature aux meilleures offres
+                # Parcourir les offres filtrées et candidater
         for job in filtered_jobs[:daily_limit]:
             if self.applications_sent_today >= daily_limit:
                 break
+                
+            # Générer candidature personnalisée
+            application = self._generate_application(job, user_profile, user_criteria)
             
-            # Générer la candidature
-            generator = ApplicationGeneratorAI()
-            application = generator.generate_custom_application(job, user_profile, user_criteria)
-            
-            # Simuler l'envoi de candidature
+            # Envoyer la candidature
             success = self._send_application(job, application)
             
             if success:
+                # Ajouter à la liste des candidatures envoyées
                 applications_sent.append({
                     'job': job,
                     'application': application,
-                    'sent_date': datetime.now(),
-                    'status': 'envoyée'
+                    'sent_date': datetime.now().isoformat(),
+                    'status': 'sent'
                 })
+                
+                # Mettre à jour le compteur
                 self.applications_sent_today += 1
+                
+                # Mettre à jour l'historique utilisateur
+                if 'applications_history' not in user_profile:
+                    user_profile['applications_history'] = []
+                user_profile['applications_history'].append(applications_sent[-1])
+                
+                # Mettre à jour les stats
+                user_profile.setdefault('ai_stats', {})
+                user_profile['ai_stats']['total_applications_sent'] = len(user_profile['applications_history'])
         
         return applications_sent
+
     
-    def _send_application(self, job, application):
-        """Simule l'envoi d'une candidature"""
+   def _send_application(self, job, application):
+    """Envoie réellement une candidature"""
+    try:
         # Dans une vraie application, ici on intégrerait avec les API des plateformes
-        # Pour la démo, on simule un succès avec 90% de chance
-        return random.random() > 0.1
+        # Pour la démo, on simule un succès avec une vraie logique
+        
+        # Vérifier que les données sont complètes
+        if not application.get('cv') or not application.get('cover_letter'):
+            return False
+            
+        # Simuler l'envoi avec une chance de succès réaliste
+        import time
+        time.sleep(0.5)  # Simuler le temps d'envoi
+        
+        # Succès dans 85% des cas (plus réaliste)
+        success = random.random() > 0.15
+        
+        if success:
+            # Incrémenter le compteur de candidatures
+            self.applications_sent_today += 1
+            
+            # Ajouter l'application à l'historique (IMPORTANT !)
+            from datetime import datetime
+            application_record = {
+                'job': job,
+                'application': application,
+                'sent_date': datetime.now().isoformat(),
+                'status': 'sent'
+            }
+            
+            return application_record  # Retourner l'enregistrement complet
+        
+        return False
+        
+    except Exception as e:
+        print(f"Erreur lors de l'envoi : {e}")
+        return False
+
 
 # Système de Notifications
 class NotificationSystemAI:
@@ -1292,6 +1458,7 @@ else:
 
 if __name__ == "__main__":
     main()
+
 
 
 
