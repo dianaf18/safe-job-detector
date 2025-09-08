@@ -475,7 +475,7 @@ class AutoApplicantAI:
             success = self._send_application(job, application)
             
             if success:
-                # Ajouter à la liste des candidatures envoyées
+                # Créer l'enregistrement complet
                 application_record = {
                     'job': job,
                     'application': application,
@@ -502,8 +502,7 @@ class AutoApplicantAI:
         """Génère une candidature personnalisée pour un job"""
         try:
             # CV personnalisé basé sur le profil
-            cv = f"""
-CV personnalisé pour {job['title']} chez {job['company']}
+            cv = f"""CV personnalisé pour {job['title']} chez {job['company']}
 
 Profil : {user_profile.get('name', 'Candidat')}
 Email : {user_profile.get('email', 'Non renseigné')}
@@ -515,27 +514,22 @@ Expérience professionnelle :
 Compétences clés :
 {', '.join(user_profile.get('skills', []))}
 
-Candidature spécialement adaptée pour ce poste.
-            """
+Candidature spécialement adaptée pour ce poste."""
             
             # Lettre de motivation personnalisée
-            cover_letter = f"""
-Objet : Candidature pour le poste de {job['title']}
+            cover_letter = f"""Objet : Candidature pour le poste de {job['title']}
 
 Madame, Monsieur,
 
 Je me permets de vous adresser ma candidature pour le poste de {job['title']} 
 au sein de {job['company']}, {job.get('location', '')}.
 
-Mon expérience en {user_profile.get('experience', 'développement')} et mes compétences 
-en {', '.join(user_profile.get('skills', [])[:3])} correspondent parfaitement aux 
-exigences de ce poste.
+Mon expérience et mes compétences correspondent parfaitement aux exigences de ce poste.
 
 Je serais ravi(e) de pouvoir vous rencontrer pour discuter de ma candidature.
 
 Cordialement,
-{user_profile.get('name', 'Candidat')}
-            """
+{user_profile.get('name', 'Candidat')}"""
             
             return {
                 'cv': cv.strip(),
@@ -559,6 +553,10 @@ Cordialement,
             import random
             import time
             
+            # Vérifier que les données sont complètes
+            if not application.get('cv') or not application.get('cover_letter'):
+                return False
+            
             # Simuler un délai d'envoi réaliste
             time.sleep(0.5)
             
@@ -576,95 +574,15 @@ Cordialement,
             print(f"Erreur lors de l'envoi : {e}")
             return False
 
-            
-        # Vérifier la limite quotidienne
-        today = datetime.now().date()
-        if self.last_application_date != today:
-            self.applications_sent_today = 0
-            self.last_application_date = today
-        
-                # Parcourir les offres filtrées et candidater
-        for job in filtered_jobs[:daily_limit]:
-            if self.applications_sent_today >= daily_limit:
-                break
-                
-            # Générer candidature personnalisée
-            application = self._generate_application(job, user_profile, user_criteria)
-            
-            # Envoyer la candidature
-            success = self._send_application(job, application)
-            
-            if success:
-                # Ajouter à la liste des candidatures envoyées
-                applications_sent.append({
-                    'job': job,
-                    'application': application,
-                    'sent_date': datetime.now().isoformat(),
-                    'status': 'sent'
-                })
-                
-                # Mettre à jour le compteur
-                self.applications_sent_today += 1
-                
-                # Mettre à jour l'historique utilisateur
-                if 'applications_history' not in user_profile:
-                    user_profile['applications_history'] = []
-                user_profile['applications_history'].append(applications_sent[-1])
-                
-                # Mettre à jour les stats
-                user_profile.setdefault('ai_stats', {})
-                user_profile['ai_stats']['total_applications_sent'] = len(user_profile['applications_history'])
-        
-        return applications_sent
-
-    
-   def _send_application(self, job, application):
-    """Envoie réellement une candidature"""
-    try:
-        # Dans une vraie application, ici on intégrerait avec les API des plateformes
-        # Pour la démo, on simule un succès avec une vraie logique
-        
-        # Vérifier que les données sont complètes
-        if not application.get('cv') or not application.get('cover_letter'):
-            return False
-            
-        # Simuler l'envoi avec une chance de succès réaliste
-        import time
-        time.sleep(0.5)  # Simuler le temps d'envoi
-        
-        # Succès dans 85% des cas (plus réaliste)
-        success = random.random() > 0.15
-        
-        if success:
-            # Incrémenter le compteur de candidatures
-            self.applications_sent_today += 1
-            
-            # Ajouter l'application à l'historique (IMPORTANT !)
-            from datetime import datetime
-            application_record = {
-                'job': job,
-                'application': application,
-                'sent_date': datetime.now().isoformat(),
-                'status': 'sent'
-            }
-            
-            return application_record  # Retourner l'enregistrement complet
-        
-        return False
-        
-    except Exception as e:
-        print(f"Erreur lors de l'envoi : {e}")
-        return False
-
-
-# Système de Notifications
+# Système de Notifications (classe séparée)
 class NotificationSystemAI:
     def __init__(self):
         self.notifications = []
     
     def generate_daily_report(self, applications_sent, jobs_analyzed):
         """Génère un rapport quotidien"""
-        today = datetime.now().strftime("%d/%m/%Y")
+        import datetime
+        today = datetime.datetime.now().strftime("%d/%m/%Y")
         
         report = {
             'date': today,
@@ -676,6 +594,18 @@ class NotificationSystemAI:
         }
         
         return report
+    
+    def _generate_recommendations(self, applications_sent, jobs_analyzed):
+        """Génère des recommandations basées sur l'activité"""
+        recommendations = []
+        
+        if len(applications_sent) == 0:
+            recommendations.append("🔄 Aucune candidature envoyée aujourd'hui. Activez la candidature automatique.")
+        elif len(applications_sent) < 3:
+            recommendations.append("📈 Augmentez votre limite quotidienne pour plus de candidatures.")
+        
+        return recommendations
+
     
     def _generate_recommendations(self, applications_sent, jobs_analyzed):
         """Génère des recommandations personnalisées"""
@@ -1458,6 +1388,7 @@ else:
 
 if __name__ == "__main__":
     main()
+
 
 
 
