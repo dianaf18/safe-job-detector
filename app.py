@@ -825,16 +825,15 @@ if st.session_state.logged_in:
         # Bloc affichage paginé
         jobs_to_show = jobs[:st.session_state.jobs_to_show_count]
         st.subheader("🏆 Offres compatibles avec votre profil")
-        
         for i, job in enumerate(jobs_to_show):
-            col1, col2 = st.columns([3, 1])
-            with col1:
-                st.markdown(f"**{i+1}. {job['title']}** - {job['company']} - {job['location']}")
-                st.write(job['description'][:100] + "...")
-            with col2:
-                st.link_button("🔗 Voir l'offre", job['url'])
-                st.write(f"💰 {job['salary']}")
-            st.divider()
+    with st.container():
+        col1, col2 = st.columns([5, 1])
+        with col1:
+            st.markdown(f"**{i+1}. {job['title']}**")
+            st.write(f"🏢 {job['company']} • 📍 {job['location']}")
+            st.write(job['description'][:200] + '…')
+        with col2:
+            st.link_button("🔗 Voir l'offre", job['url'], use_container_width=True)
         
         # Bouton "Afficher plus" - HORS de la boucle
         if st.session_state.jobs_to_show_count < len(jobs):
@@ -1388,6 +1387,7 @@ else:
 
 if __name__ == "__main__":
     main()
+
 
 
 
