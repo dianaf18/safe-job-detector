@@ -789,7 +789,6 @@ if st.session_state.get('logged_in', False):
     user_info = st.session_state.users_db[st.session_state.current_user]
     if 'jobs_to_show_count' not in st.session_state:
         st.session_state.jobs_to_show_count = 10
-
     # Onglets principaux
     tab1, tab2, tab3, tab4, tab5 = st.tabs([
         "🤖 IA Candidature",
@@ -798,10 +797,8 @@ if st.session_state.get('logged_in', False):
         "📋 Historique",
         "🛡️ Sécurité"
     ])
-
     with tab1:
         st.header("🤖 Intelligence Artificielle de Candidature")
-
         # Calcul des offres compatibles
         profile_ai = UserProfileAI()
         ai_settings = user_info.get('ai_settings', {})
@@ -813,11 +810,12 @@ if st.session_state.get('logged_in', False):
         search_ai = AutoJobSearchAI()
         filtered_jobs = search_ai.intelligent_job_search(user_criteria)
         jobs = filtered_jobs
-
         # Debug : vérifier le contenu de filtered_jobs
         st.write(f"**DEBUG:** Nombre d'offres trouvées : {len(filtered_jobs)}")
         if filtered_jobs:
-            st.write("Première offre :", filtered_jobs[0])
+            # Commenté pour éviter affichage rouge bizarre
+            # st.write("Première offre :", filtered_jobs[0])
+            pass
         else:
             st.error("Aucune offre trouvée ! Vérifiez vos critères et APIs.")
 
@@ -834,18 +832,12 @@ if st.session_state.get('logged_in', False):
                 with col2:
                     st.link_button("🔗 Voir l'offre", job['url'], use_container_width=True)
             st.divider()
-        jobs_to_show = jobs[:st.session_state.jobs_to_show_count]
 
-for i, job in enumerate(jobs_to_show):
-    # ... affichage de chaque job ...
-    pass
-
-# Ici, SANS INDENTATION supplémentaire :
-if st.session_state.jobs_to_show_count < len(jobs):
-    if st.button("Afficher 10 offres de plus"):
-        st.session_state.jobs_to_show_count += 10
-        st.experimental_rerun()
-
+        # Bouton "Afficher plus" - HORS de la boucle
+        if st.session_state.jobs_to_show_count < len(jobs):
+            if st.button("Afficher 10 offres de plus"):
+                st.session_state.jobs_to_show_count += 10
+                st.experimental_rerun()
 
         # Test de l'IA - HORS de la boucle
         st.subheader("🧪 Test de l'IA de Candidature")
@@ -861,7 +853,6 @@ if st.session_state.jobs_to_show_count < len(jobs):
                         user_info['skills'],
                         ai_settings
                     )
-
                     # Recherche automatique
                     test_search_ai = AutoJobSearchAI()
                     test_filtered_jobs = test_search_ai.intelligent_job_search(test_user_criteria, "")
@@ -875,11 +866,9 @@ if st.session_state.jobs_to_show_count < len(jobs):
                         applications_sent = applicant_ai.auto_apply_to_jobs(
                             test_filtered_jobs, user_info, test_user_criteria, daily_limit
                         )
-
                     # Affichage des résultats
                     if test_filtered_jobs:
                         st.success(f"🎉 L'IA a trouvé {len(test_filtered_jobs)} offres compatibles avec votre profil !")
-
                         # Statistiques
                         col1, col2, col3, col4 = st.columns(4)
                         with col1:
@@ -890,9 +879,8 @@ if st.session_state.jobs_to_show_count < len(jobs):
                         with col3:
                             st.metric("Candidatures envoyées", len(applications_sent))
                         with col4:
-                            remote_count = sum(1 for job in test_filtered_jobs if job['is_remote'])
+                            remote_count = sum(1 for job in test_filtered_jobs if job.get('is_remote'))
                             st.metric("Télétravail", remote_count)
-
                         # Affichage des meilleures offres (top 10)
                         st.subheader("🏆 Top 10 des offres les plus compatibles")
                         for i, job in enumerate(test_filtered_jobs[:10]):
@@ -907,6 +895,43 @@ if st.session_state.jobs_to_show_count < len(jobs):
                                         <span style="color: {compatibility_color};">🎯 Compatibilité: {job['ai_score']:.1%}</span></p>
                                     </div>
                                 """, unsafe_allow_html=True)
+else:
+    st.info("👈 Veuillez vous connecter pour accéder à Safe Job Hub AI")
+    st.header("🤖 Safe Job Hub AI - Votre Assistant Emploi Intelligent")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.markdown("""
+        <div class="stats-card">
+            <h2>🤖</h2>
+            <h3>IA de Candidature</h3>
+            <p>Recherche et candidature automatiques 24/7</p>
+        </div>
+        """, unsafe_allow_html=True)
+    with col2:
+        st.markdown("""
+        <div class="stats-card">
+            <h2>🎯</h2>
+            <h3>Matching Intelligent</h3>
+            <p>Score de compatibilité pour chaque offre</p>
+        </div>
+        """, unsafe_allow_html=True)
+    with col3:
+        st.markdown("""
+        <div class="stats-card">
+            <h2>📊</h2>
+            <h3>Dashboard Complet</h3>
+            <p>Suivi en temps réel de vos candidatures</p>
+        </div>
+        """, unsafe_allow_html=True)
+    st.markdown("""
+    ## 🚀 Fonctionnalités de l'IA
+    - **🔍 Recherche Automatique** : L'IA analyse votre profil et recherche les offres compatibles
+    - **🎯 Score de Compatibilité** : Chaque offre reçoit un score basé sur votre profil
+    - **📝 Candidatures Personnalisées** : CV et lettres de motivation adaptés automatiquement
+    - **📊 Dashboard Complet** : Suivi en temps réel de vos candidatures et statistiques
+    - **🛡️ Sécurité Maximale** : Protection de vos données personnelles
+    """)
+
 
     with tab2:
         st.header("📊 Dashboard Intelligence Artificielle")
@@ -1416,6 +1441,7 @@ else:
 
 if __name__ == "__main__":
     main()
+
 
 
 
