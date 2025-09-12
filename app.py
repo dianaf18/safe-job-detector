@@ -791,18 +791,18 @@ if st.session_state.logged_in:
     if 'jobs_to_show_count' not in st.session_state:
         st.session_state.jobs_to_show_count = 10
     
-    # Onglets principaux
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
-        "🤖 IA Candidature",
-        "📊 Dashboard IA",
-        "👤 Profil & Config",
-        "📋 Historique",
-        "🛡️ Sécurité"
-    ])
-    
-   with tab1:
+# Onglets principaux
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    "🤖 IA Candidature",
+    "📊 Dashboard IA",
+    "👤 Profil & Config",
+    "📋 Historique",
+    "🛡️ Sécurité"
+])
+
+with tab1:  # ← aucune indentation ici, niveau 0
     st.header("🤖 Intelligence Artificielle de Candidature")
-    # ... autres calculs ... #
+   
     jobs_to_show = jobs[:st.session_state.jobs_to_show_count]
     st.subheader("🏆 Offres compatibles avec votre profil")
 
@@ -1369,6 +1369,7 @@ else:
 
 if __name__ == "__main__":
     main()
+
 
 
 
