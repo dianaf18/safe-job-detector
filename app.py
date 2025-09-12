@@ -1238,9 +1238,8 @@ with tab1:  # ← aucune indentation ici, niveau 0
 
     with tab5:
         st.header("🛡️ Sécurité & Confidentialité")
-        
         st.subheader("🔐 Gestion des accès")
-        
+
         # Informations de sécurité
         st.markdown("""
         <div class="notification-card">
@@ -1251,15 +1250,14 @@ with tab1:  # ← aucune indentation ici, niveau 0
             <p>• Aucune donnée n'est partagée avec des tiers sans votre consentement</p>
         </div>
         """, unsafe_allow_html=True)
-        
+
         # Gestion des données
         col1, col2 = st.columns(2)
-        
+
         with col1:
             st.subheader("📊 Vos données")
-            
+
             if st.button("📥 Exporter mes données"):
-                # Créer un export JSON des données utilisateur
                 export_data = {
                     'profile': {
                         'name': user_info.get('name', ''),
@@ -1270,19 +1268,16 @@ with tab1:  # ← aucune indentation ici, niveau 0
                     'applications_count': len(user_info.get('applications_history', [])),
                     'export_date': datetime.now().isoformat()
                 }
-                
                 st.download_button(
                     label="💾 Télécharger mes données",
                     data=json.dumps(export_data, indent=2, ensure_ascii=False),
                     file_name=f"safe_job_hub_data_{datetime.now().strftime('%Y%m%d')}.json",
                     mime="application/json"
                 )
-        
+
         with col2:
             st.subheader("🗑️ Suppression des données")
-            
             st.warning("⚠️ **Attention** : Cette action est irréversible")
-            
             if st.button("🗑️ Supprimer l'historique des candidatures", type="secondary"):
                 user_info['applications_history'] = []
                 user_info['ai_stats'] = {
@@ -1293,7 +1288,6 @@ with tab1:  # ← aucune indentation ici, niveau 0
                     "last_activity_date": None
                 }
                 st.success("Historique supprimé !")
-            
             if st.button("❌ Supprimer tout mon compte", type="secondary"):
                 if st.session_state.current_user in st.session_state.users_db:
                     del st.session_state.users_db[st.session_state.current_user]
@@ -1301,10 +1295,9 @@ with tab1:  # ← aucune indentation ici, niveau 0
                     st.success("Compte supprimé ! Redirection...")
                     time.sleep(2)
                     st.rerun()
-        
+
         # Paramètres de confidentialité
         st.subheader("🔧 Paramètres de confidentialité")
-        
         privacy_settings = user_info.get('privacy_settings', {})
         allow_analytics = st.checkbox("📊 Autoriser l'analyse anonyme pour améliorer l'IA", 
                                      value=privacy_settings.get('allow_analytics', True))
@@ -1312,7 +1305,6 @@ with tab1:  # ← aucune indentation ici, niveau 0
                                           value=privacy_settings.get('allow_notifications', True))
         allow_data_sharing = st.checkbox("🤝 Partager des statistiques anonymes avec les partenaires", 
                                          value=privacy_settings.get('allow_data_sharing', False))
-        
         if st.button("💾 Sauvegarder les paramètres de confidentialité"):
             user_info['privacy_settings'] = {
                 'allow_analytics': allow_analytics,
@@ -1321,13 +1313,49 @@ with tab1:  # ← aucune indentation ici, niveau 0
             }
             st.success("Paramètres de confidentialité sauvegardés !")
 
-# BLOC POUR UTILISATEURS NON CONNECTÉS
+# BLOC POUR UTILISATEURS NON CONNECTÉS (DOIT ÊTRE DÉSINDENTÉ, ALIGNÉ TOUT À GAUCHE)
 else:
     st.info("👈 Veuillez vous connecter pour accéder à Safe Job Hub AI")
-    
     st.header("🤖 Safe Job Hub AI - Votre Assistant Emploi Intelligent")
-    
+
     col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.markdown("""
+        <div class="stats-card">
+            <h2>🤖</h2>
+            <h3>IA de Candidature</h3>
+            <p>Recherche et candidature automatiques 24/7</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col2:
+        st.markdown("""
+        <div class="stats-card">
+            <h2>🎯</h2>
+            <h3>Matching Intelligent</h3>
+            <p>Score de compatibilité pour chaque offre</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col3:
+        st.markdown("""
+        <div class="stats-card">
+            <h2>📊</h2>
+            <h3>Dashboard Complet</h3>
+            <p>Suivi en temps réel de vos candidatures</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown("""
+    ## 🚀 Fonctionnalités de l'IA
+
+    - **🔍 Recherche Automatique** : L'IA analyse votre profil et recherche les offres compatibles
+    - **🎯 Score de Compatibilité** : Chaque offre reçoit un score basé sur votre profil
+    - **📝 Candidatures Personnalisées** : CV et lettres de motivation adaptés automatiquement
+    - **📊 Dashboard Complet** : Suivi en temps réel de vos candidatures et statistiques
+    - **🛡️ Sécurité Maximale** : Protection de vos données personnelles
+    """)
     
     with col1:
         st.markdown("""
@@ -1369,6 +1397,7 @@ else:
 
 if __name__ == "__main__":
     main()
+
 
 
 
