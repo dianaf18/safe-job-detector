@@ -834,6 +834,7 @@ if st.session_state.get('logged_in', False):
                 with col2:
                     st.link_button("🔗 Voir l'offre", job['url'], use_container_width=True)
             st.divider()
+jobs_to_show = jobs[:st.session_state.jobs_to_show_count]
 
         # Bouton "Afficher plus" - HORS de la boucle
         if st.session_state.jobs_to_show_count < len(jobs):
@@ -1410,6 +1411,7 @@ else:
 
 if __name__ == "__main__":
     main()
+
 
 
 
