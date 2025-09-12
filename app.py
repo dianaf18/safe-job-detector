@@ -834,13 +834,18 @@ if st.session_state.get('logged_in', False):
                 with col2:
                     st.link_button("🔗 Voir l'offre", job['url'], use_container_width=True)
             st.divider()
-jobs_to_show = jobs[:st.session_state.jobs_to_show_count]
+        jobs_to_show = jobs[:st.session_state.jobs_to_show_count]
 
-        # Bouton "Afficher plus" - HORS de la boucle
-        if st.session_state.jobs_to_show_count < len(jobs):
-            if st.button("Afficher 10 offres de plus"):
-                st.session_state.jobs_to_show_count += 10
-                st.experimental_rerun()
+for i, job in enumerate(jobs_to_show):
+    # ... affichage de chaque job ...
+    pass
+
+# Ici, SANS INDENTATION supplémentaire :
+if st.session_state.jobs_to_show_count < len(jobs):
+    if st.button("Afficher 10 offres de plus"):
+        st.session_state.jobs_to_show_count += 10
+        st.experimental_rerun()
+
 
         # Test de l'IA - HORS de la boucle
         st.subheader("🧪 Test de l'IA de Candidature")
@@ -1411,6 +1416,7 @@ else:
 
 if __name__ == "__main__":
     main()
+
 
 
 
