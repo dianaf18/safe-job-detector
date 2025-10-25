@@ -792,14 +792,14 @@ if st.session_state.get('logged_in', False):
 
     # Onglets principaux
     tab1, tab2, tab3, tab4, tab5 = st.tabs([
-        "🤖 IA Candidature",
-        "📊 Dashboard IA",
-        "👤 Profil & Config",
-        "📋 Historique",
-        "🛡️ Sécurité"
-    ])
+    "🤖 IA Candidature",
+    "📊 Dashboard IA",
+    "👤 Profil & Config",
+    "📋 Historique",
+    "🛡️ Sécurité"
+])
 
-    with tab1:
+with tab1:
     st.header("🤖 Intelligence Artificielle de Candidature")
 
     # Calcul des offres compatibles
@@ -814,12 +814,12 @@ if st.session_state.get('logged_in', False):
     filtered_jobs = search_ai.intelligent_job_search(user_criteria)
     jobs = filtered_jobs if filtered_jobs is not None else []
 
-    # Initialisation pagination - à faire AVANT l'affichage
+    # Initialisation pagination (à faire tout en haut du tab1)
     if 'jobs_to_show_count' not in st.session_state or st.session_state.jobs_to_show_count < 10:
         st.session_state.jobs_to_show_count = 10
 
-    # Bloc affichage paginé
     jobs_to_show = jobs[:st.session_state.jobs_to_show_count]
+
     st.write(f"**DEBUG:** Nombre d'offres trouvées : {len(jobs)}")
     if not jobs:
         st.error("Aucune offre trouvée ! Vérifiez vos critères et APIs.")
@@ -836,11 +836,11 @@ if st.session_state.get('logged_in', False):
                     st.link_button("🔗 Voir l'offre", job.get('url', ''), use_container_width=True)
             st.divider()
 
-        # Bouton "Afficher plus" — HORS boucle et JAMAIS de slice ici !
         if st.session_state.jobs_to_show_count < len(jobs):
             if st.button("Afficher 10 offres de plus"):
                 st.session_state.jobs_to_show_count += 10
                 st.experimental_rerun()
+
 
 
         # Test de l'IA - HORS de la boucle
@@ -1346,6 +1346,7 @@ else:
 
 if __name__ == "__main__":
     main()
+
 
 
 
