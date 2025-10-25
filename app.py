@@ -800,30 +800,30 @@ if st.session_state.get('logged_in', False):
     ])
 
     with tab1:
-        st.header("🤖 Intelligence Artificielle de Candidature")
-        # Calcul des offres compatibles
-        profile_ai = UserProfileAI()
-        ai_settings = user_info.get('ai_settings', {})
-        user_criteria = profile_ai.analyze_user_profile(
-            user_info.get('experience', ''),
-            user_info.get('skills', []),
-            ai_settings
-        )
-        search_ai = AutoJobSearchAI()
-        filtered_jobs = search_ai.intelligent_job_search(user_criteria)
-        jobs = filtered_jobs
+    st.header("🤖 Intelligence Artificielle de Candidature")
 
-        # Debug : vérifier le contenu de filtered_jobs
-        st.write(f"**DEBUG:** Nombre d'offres trouvées : {len(filtered_jobs)}")
-        if filtered_jobs:
-            # Commente ou supprime cette ligne si tu ne veux pas voir la 1ère offre en rouge
-            # st.write("Première offre :", filtered_jobs[0])
-            pass
-        else:
-            st.error("Aucune offre trouvée ! Vérifiez vos critères et APIs.")
+    # Calcul des offres compatibles
+    profile_ai = UserProfileAI()
+    ai_settings = user_info.get('ai_settings', {})
+    user_criteria = profile_ai.analyze_user_profile(
+        user_info.get('experience', ''),
+        user_info.get('skills', []),
+        ai_settings
+    )
+    search_ai = AutoJobSearchAI()
+    filtered_jobs = search_ai.intelligent_job_search(user_criteria)
+    jobs = filtered_jobs if filtered_jobs is not None else []
 
-        # Bloc affichage paginé
-        jobs_to_show = jobs[:st.session_state.jobs_to_show_count]
+    # Initialisation pagination - à faire AVANT l'affichage
+    if 'jobs_to_show_count' not in st.session_state or st.session_state.jobs_to_show_count < 10:
+        st.session_state.jobs_to_show_count = 10
+
+    # Bloc affichage paginé
+    jobs_to_show = jobs[:st.session_state.jobs_to_show_count]
+    st.write(f"**DEBUG:** Nombre d'offres trouvées : {len(jobs)}")
+    if not jobs:
+        st.error("Aucune offre trouvée ! Vérifiez vos critères et APIs.")
+    else:
         st.subheader("🏆 Offres compatibles avec votre profil")
         for i, job in enumerate(jobs_to_show):
             with st.container():
@@ -836,11 +836,12 @@ if st.session_state.get('logged_in', False):
                     st.link_button("🔗 Voir l'offre", job.get('url', ''), use_container_width=True)
             st.divider()
 
-        # Bouton "Afficher plus" - HORS de la boucle
+        # Bouton "Afficher plus" — HORS boucle et JAMAIS de slice ici !
         if st.session_state.jobs_to_show_count < len(jobs):
             if st.button("Afficher 10 offres de plus"):
                 st.session_state.jobs_to_show_count += 10
                 st.experimental_rerun()
+
 
         # Test de l'IA - HORS de la boucle
         st.subheader("🧪 Test de l'IA de Candidature")
@@ -1345,6 +1346,7 @@ else:
 
 if __name__ == "__main__":
     main()
+
 
 
 
