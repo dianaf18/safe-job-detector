@@ -715,6 +715,9 @@ if 'logged_in' not in st.session_state:
 if 'current_user' not in st.session_state:
     st.session_state.current_user = None
 
+if st.session_state.get('logged_in', False):
+    user_info = st.session_state.users_db[st.session_state.current_user]
+
 # Interface principale
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "🤖 IA Candidature",
@@ -1353,6 +1356,7 @@ with tab1:
 
 if __name__ == "__main__":
     main()
+
 
 
 
