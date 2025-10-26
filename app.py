@@ -716,6 +716,13 @@ if 'current_user' not in st.session_state:
     st.session_state.current_user = None
 
 # Interface principale
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    "🤖 IA Candidature",
+    "📊 Dashboard IA",
+    "👤 Profil & Config",
+    "📋 Historique",
+    "🛡️ Sécurité"
+])
 def main():
     st.markdown('<h1 class="main-header">🤖 Safe Job Hub AI - Candidature Automatique</h1>', unsafe_allow_html=True)
     st.markdown("### IA de recherche et candidature automatique - Votre assistant emploi 24/7")
@@ -1346,6 +1353,7 @@ with tab1:
 
 if __name__ == "__main__":
     main()
+
 
 
 
