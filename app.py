@@ -1249,10 +1249,10 @@ with tab1:
             }
             st.success("Paramètres de confidentialité sauvegardés !")
 
-else:
-    st.info("👈 Veuillez vous connecter pour accéder à Safe Job Hub AI")
-    st.header("🤖 Safe Job Hub AI - Votre Assistant Emploi Intelligent")
-    col1, col2, col3 = st.columns(3)
+        else:
+          st.info("👈 Veuillez vous connecter pour accéder à Safe Job Hub AI")
+          st.header("🤖 Safe Job Hub AI - Votre Assistant Emploi Intelligent")
+          col1, col2, col3 = st.columns(3)
     with col1:
         st.markdown("""
         <div class="stats-card">
@@ -1346,6 +1346,7 @@ else:
 
 if __name__ == "__main__":
     main()
+
 
 
 
