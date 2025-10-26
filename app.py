@@ -821,10 +821,10 @@ def main():
    
 
 
-    with tab2:
-        st.header("📊 Dashboard Intelligence Artificielle")
-        col1, col2 = st.columns(2)
-        with col1:
+         with tab2:
+             st.header("📊 Dashboard Intelligence Artificielle")
+             col1, col2 = st.columns(2)
+             with col1:
             st.subheader("⚙️ Configuration de l'IA")
             ai_settings = user_info.get('ai_settings', {})
             auto_search = st.toggle(
@@ -1274,6 +1274,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
