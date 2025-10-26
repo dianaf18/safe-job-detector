@@ -715,6 +715,7 @@ if 'logged_in' not in st.session_state:
 if 'current_user' not in st.session_state:
     st.session_state.current_user = None
 
+def main():
 if st.session_state.get('logged_in', False):
     user_info = st.session_state.users_db[st.session_state.current_user]
 
@@ -1273,6 +1274,7 @@ if st.session_state.get('logged_in', False):
 
 if __name__ == "__main__":
     main()
+
 
 
 
