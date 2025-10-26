@@ -727,7 +727,7 @@ def main():
             "🛡️ Sécurité"
         ])
 
-with tab1:
+        with tab1:
     st.header("🤖 Intelligence Artificielle de Candidature")
 
     profile_ai = UserProfileAI()
@@ -937,6 +937,7 @@ with tab2:
                     {rec}
                 </div>
                 """, unsafe_allow_html=True)
+
 
     with tab3:
         st.header("👤 Profil Utilisateur & Configuration IA")
@@ -1271,6 +1272,7 @@ with tab2:
 
 if __name__ == "__main__":
     main()
+
 
 
 
