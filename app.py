@@ -129,7 +129,7 @@ def main():
         ### ONGLET 1 : IA Candidature ###
         with tab1:
             st.subheader("Module IA Candidature - à compléter selon tes besoins")
-             profile_ai = UserProfileAI()
+            profile_ai = UserProfileAI()
     ai_settings = user_info.get('ai_settings', {})
     user_criteria = profile_ai.analyze_user_profile(
         user_info.get('experience', ''),
@@ -674,6 +674,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
