@@ -340,37 +340,34 @@ def main():
 
 
         with tab3:
-    st.subheader("Profil & Configuration - formulaire à compléter")
-    with st.form("ai_profile_form"):
-        st.subheader("🧠 Profil pour l'IA")
-        col1, col2 = st.columns(2)
-        with col1:
-            name = st.text_input("Nom complet", value=user_info.get('name', ''))
-            phone = st.text_input("Téléphone", value=user_info.get('phone', ''))
-            email_display = st.text_input("Email", value=st.session_state.current_user, disabled=True)
-        with col2:
-            address = st.text_area("Adresse", value=user_info.get('address', ''))
-        st.subheader("💼 Expérience professionnelle (pour l'IA)")
-        experience = st.text_area("Décrivez votre expérience (l'IA analysera ce texte)",
+            st.subheader("Profil & Configuration - formulaire à compléter")
+             with st.form("ai_profile_form"):
+              st.subheader("🧠 Profil pour l'IA")
+              col1, col2 = st.columns(2)
+                  with col1:
+           
+                   address = st.text_area("Adresse", value=user_info.get('address', ''))
+                   st.subheader("💼 Expérience professionnelle (pour l'IA)")
+                        experience = st.text_area("Décrivez votre expérience (l'IA analysera ce texte)",
                                   value=user_info.get('experience', ''),
                                   height=100,
                                   help="Plus vous êtes précis, mieux l'IA pourra vous matcher avec des offres pertinentes")
-        st.subheader("🎯 Compétences (pour l'IA)")
-        skills_input = st.text_input("Compétences (séparées par des virgules)",
+                     st.subheader("🎯 Compétences (pour l'IA)")
+                         skills_input = st.text_input("Compétences (séparées par des virgules)",
                                      value=", ".join(user_info.get('skills', [])),
                                      help="L'IA utilisera ces compétences pour calculer la compatibilité")
-        st.subheader("📄 CV pour candidatures automatiques")
-        uploaded_file = st.file_uploader("Télécharger votre CV (utilisé par l'IA)", type=['pdf', 'doc', 'docx'])
-        if st.form_submit_button("💾 Sauvegarder le profil IA", type="primary"):
-            user_info['name'] = name
-            user_info['phone'] = phone
-            user_info['address'] = address
-            user_info['experience'] = experience
-            user_info['skills'] = [skill.strip() for skill in skills_input.split(',') if skill.strip()]
-            if uploaded_file:
-                user_info['cv_uploaded'] = True
-            if experience and skills_input:
-                profile_ai = UserProfileAI()
+                    st.subheader("📄 CV pour candidatures automatiques")
+                         uploaded_file = st.file_uploader("Télécharger votre CV (utilisé par l'IA)", type=['pdf', 'doc', 'docx'])
+                         if st.form_submit_button("💾 Sauvegarder le profil IA", type="primary"):
+                         user_info['name'] = name
+                         user_info['phone'] = phone
+                         user_info['address'] = address
+                         user_info['experience'] = experience
+                          user_info['skills'] = [skill.strip() for skill in skills_input.split(',') if skill.strip()]
+                          if uploaded_file:
+                          user_info['cv_uploaded'] = True
+                          if experience and skills_input:
+                               profile_ai = UserProfileAI()
                 ai_profile = profile_ai.analyze_user_profile(
                     experience,
                     user_info['skills'],
@@ -674,6 +671,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
