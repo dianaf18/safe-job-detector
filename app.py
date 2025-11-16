@@ -603,12 +603,13 @@ def main():
     """)
 
     # -------------------- NON CONNECTÉ ———
-    else:
+else:
         st.info("Connectez-vous pour accéder à l’application.")
 
 # ——— LANCEMENT DE L'APP (NE JAMAIS TOUCHER ICI) ———
 if __name__ == "__main__":
     main()
+
 
 
 
