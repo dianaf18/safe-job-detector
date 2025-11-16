@@ -314,7 +314,7 @@ def main():
                              title="🎯 Répartition des scores de compatibilité")
                 fig.update_traces(textposition='inside', textinfo='percent+label')
                 st.plotly_chart(fig, use_container_width=True)
-    if ai_stats.get('last_activity_date'):
+    if i_stats.get('last_activity_date'):
         st.subheader("📋 Rapport IA du jour")
         notification_system = NotificationSystemAI()
         daily_report = notification_system.generate_daily_report(
@@ -340,10 +340,10 @@ def main():
 
 
         with tab3:
-            st.subheader("Profil & Configuration - formulaire à compléter")
-            with st.form("ai_profile_form"):
-            st.subheader("🧠 Profil pour l'IA")
-            col1, col2 = st.columns(2)
+    st.subheader("Profil & Configuration - formulaire à compléter")
+    with st.form("ai_profile_form"):
+        st.subheader("🧠 Profil pour l'IA")
+        col1, col2 = st.columns(2)
         with col1:
             name = st.text_input("Nom complet", value=user_info.get('name', ''))
             phone = st.text_input("Téléphone", value=user_info.get('phone', ''))
@@ -673,6 +673,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
