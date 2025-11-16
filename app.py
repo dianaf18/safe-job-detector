@@ -329,7 +329,7 @@ def main():
             <p><strong>🏢 Entreprises ciblées :</strong> {', '.join(daily_report['top_companies'][:3]) if daily_report['top_companies'] else 'Aucune'}</p>
         </div>
         """, unsafe_allow_html=True)
-        if daily_report['recommendations']:
+        if daily_report['recommendations]:
             st.subheader("💡 Recommandations IA")
             for rec in daily_report['recommendations']:
                 st.markdown(f"""
@@ -405,7 +405,7 @@ def main():
                                         ["Toutes", "Startup", "PME", "Grande entreprise"],
                                         index=0)
         avoid_keywords = st.text_input("Mots-clés à éviter",
-                                      placeholder="Ex: stage, bénévole, commission")
+                                       placeholder="Ex: stage, bénévole, commission")
     if st.button("💾 Sauvegarder la configuration avancée"):
         user_info['ai_settings'].update({
             'search_frequency': search_frequency,
@@ -414,7 +414,6 @@ def main():
             'avoid_keywords': avoid_keywords.split(',') if avoid_keywords else []
         })
         st.success("Configuration avancée sauvegardée !")
-
         ### ONGLET 4 : Historique ###
         with tab4:
             st.subheader("Historique des candidatures IA - à compléter")
@@ -674,6 +673,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
