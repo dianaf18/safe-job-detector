@@ -272,8 +272,8 @@ def main():
             st.subheader("👤 Profil & Configuration")
             st.write("Modifier ici votre profil et vos paramètres IA.")
             with st.form("ai_profile_form"):
-            st.subheader("🧠 Profil pour l'IA")
-            col1, col2 = st.columns(2)
+                st.subheader("🧠 Profil pour l'IA")
+                col1, col2 = st.columns(2)
             with col1:
                 name = st.text_input("Nom complet", value=user_info.get('name', ''))
                 phone = st.text_input("Téléphone", value=user_info.get('phone', ''))
@@ -609,6 +609,7 @@ def main():
 # ——— LANCEMENT DE L'APP (NE JAMAIS TOUCHER ICI) ———
 if __name__ == "__main__":
     main()
+
 
 
 
