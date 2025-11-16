@@ -340,28 +340,28 @@ def main():
 
 
         with tab3:
-    st.subheader("Profil & Configuration - formulaire à compléter")
-    with st.form("ai_profile_form"):
-        st.subheader("🧠 Profil pour l'IA")
-        col1, col2 = st.columns(2)
-        with col1:
-            name = st.text_input("Nom complet", value=user_info.get('name', ''))
-            phone = st.text_input("Téléphone", value=user_info.get('phone', ''))
-            email_display = st.text_input("Email", value=st.session_state.current_user, disabled=True)
-        with col2:
-            address = st.text_area("Adresse", value=user_info.get('address', ''))
-        st.subheader("💼 Expérience professionnelle (pour l'IA)")
-        experience = st.text_area("Décrivez votre expérience (l'IA analysera ce texte)",
+           st.subheader("Profil & Configuration - formulaire à compléter")
+           with st.form("ai_profile_form"):
+           st.subheader("🧠 Profil pour l'IA")
+           col1, col2 = st.columns(2)
+       with col1:
+           name = st.text_input("Nom complet", value=user_info.get('name', ''))
+           phone = st.text_input("Téléphone", value=user_info.get('phone', ''))
+           email_display = st.text_input("Email", value=st.session_state.current_user, disabled=True)
+      with col2:
+           address = st.text_area("Adresse", value=user_info.get('address', ''))
+           st.subheader("💼 Expérience professionnelle (pour l'IA)")
+           experience = st.text_area("Décrivez votre expérience (l'IA analysera ce texte)",
                                   value=user_info.get('experience', ''),
                                   height=100,
                                   help="Plus vous êtes précis, mieux l'IA pourra vous matcher avec des offres pertinentes")
-        st.subheader("🎯 Compétences (pour l'IA)")
-        skills_input = st.text_input("Compétences (séparées par des virgules)",
+          st.subheader("🎯 Compétences (pour l'IA)")
+          skills_input = st.text_input("Compétences (séparées par des virgules)",
                                      value=", ".join(user_info.get('skills', [])),
                                      help="L'IA utilisera ces compétences pour calculer la compatibilité")
-        st.subheader("📄 CV pour candidatures automatiques")
-        uploaded_file = st.file_uploader("Télécharger votre CV (utilisé par l'IA)", type=['pdf', 'doc', 'docx'])
-        if st.form_submit_button("💾 Sauvegarder le profil IA", type="primary"):
+         st.subheader("📄 CV pour candidatures automatiques")
+         uploaded_file = st.file_uploader("Télécharger votre CV (utilisé par l'IA)", type=['pdf', 'doc', 'docx'])
+         if st.form_submit_button("💾 Sauvegarder le profil IA", type="primary"):
             user_info['name'] = name
             user_info['phone'] = phone
             user_info['address'] = address
@@ -390,9 +390,9 @@ def main():
             else:
                 st.success("Profil sauvegardé ! Complétez l'expérience et les compétences pour l'analyse IA.")
 
-    st.subheader("⚙️ Configuration avancée de l'IA")
-    ai_settings = user_info.get('ai_settings', {})
-    col1, col2 = st.columns(2)
+      st.subheader("⚙️ Configuration avancée de l'IA")
+      ai_settings = user_info.get('ai_settings', {})
+      col1, col2 = st.columns(2)
     with col1:
         st.write("**🕐 Planification des recherches**")
         search_frequency = st.selectbox("Fréquence de recherche automatique",
@@ -414,6 +414,7 @@ def main():
             'avoid_keywords': avoid_keywords.split(',') if avoid_keywords else []
         })
         st.success("Configuration avancée sauvegardée !")
+    
         ### ONGLET 4 : Historique ###
         with tab4:
             st.subheader("Historique des candidatures IA - à compléter")
@@ -423,7 +424,7 @@ def main():
             col1, col2, col3 = st.columns(3)
             with col1:
                 filter_company = st.selectbox("Filtrer par entreprise",
-                                             ["Toutes"] + list(set([app['job']['company'] for app in applications_history])))
+                                             ["Toutes"] + list(set([app['job']['company'] for app in applications_istory])))
             with col2:
                 filter_score = st.selectbox("Filtrer par score",
                                            ["Tous", "Élevé (80%+)", "Moyen (60-80%)", "Faible (<60%)"])
@@ -673,6 +674,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
