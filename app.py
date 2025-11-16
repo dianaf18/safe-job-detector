@@ -339,16 +339,16 @@ def main():
                 """, unsafe_allow_html=True)
 
 
-        with tab3:
+       with tab3:
             st.subheader("Profil & Configuration - formulaire à compléter")
-            with st.form("ai_profile_form"):
+       with st.form("ai_profile_form"):
             st.subheader("🧠 Profil pour l'IA")
             col1, col2 = st.columns(2)
        with col1:
             name = st.text_input("Nom complet", value=user_info.get('name', ''))
             phone = st.text_input("Téléphone", value=user_info.get('phone', ''))
             email_display = st.text_input("Email", value=st.session_state.current_user, disabled=True)
-      with col2:
+       with col2:
             address = st.text_area("Adresse", value=user_info.get('address', ''))
             st.subheader("💼 Expérience professionnelle (pour l'IA)")
             experience = st.text_area("Décrivez votre expérience (l'IA analysera ce texte)",
@@ -674,6 +674,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
