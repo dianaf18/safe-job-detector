@@ -339,81 +339,81 @@ def main():
                 """, unsafe_allow_html=True)
 
 
-        ### ONGLET 3 : Profil et Configuration ###
         with tab3:
-            st.subheader("Profil & Configuration - formulaire à compléter")
-                with st.form("ai_profile_form"):
-                st.subheader("🧠 Profil pour l'IA")
-                col1, col2 = st.columns(2)
-                with col1:
-                   name = st.text_input("Nom complet", value=user_info.get('name', ''))
-                   phone = st.text_input("Téléphone", value=user_info.get('phone', ''))
-                   email_display = st.text_input("Email", value=st.session_state.current_user, disabled=True)
-                with col2:
-                    address = st.text_area("Adresse", value=user_info.get('address', ''))
-            st.subheader("💼 Expérience professionnelle (pour l'IA)")
-            experience = st.text_area("Décrivez votre expérience (l'IA analysera ce texte)",
-                                     value=user_info.get('experience', ''),
-                                     height=100,
-                                     help="Plus vous êtes précis, mieux l'IA pourra vous matcher avec des offres pertinentes")
-            st.subheader("🎯 Compétences (pour l'IA)")
-            skills_input = st.text_input("Compétences (séparées par des virgules)",
-                                       value=", ".join(user_info.get('skills', [])),
-                                       help="L'IA utilisera ces compétences pour calculer la compatibilité")
-            st.subheader("📄 CV pour candidatures automatiques")
-            uploaded_file = st.file_uploader("Télécharger votre CV (utilisé par l'IA)", type=['pdf', 'doc', 'docx'])
-            if st.form_submit_button("💾 Sauvegarder le profil IA", type="primary"):
-                user_info['name'] = name
-                user_info['phone'] = phone
-                user_info['address'] = address
-                user_info['experience'] = experience
-                user_info['skills'] = [skill.strip() for skill in skills_input.split(',') if skill.strip()]
-                if uploaded_file:
-                    user_info['cv_uploaded'] = True
-                if experience and skills_input:
-                    profile_ai = UserProfileAI()
-                    ai_profile = profile_ai.analyze_user_profile(
-                        experience,
-                        user_info['skills'],
-                        user_info.get('ai_settings', {})
-                    )
-                    user_info['ai_profile'] = ai_profile
-                    st.success("✅ Profil sauvegardé et analysé par l'IA !")
-                    st.subheader("🤖 Analyse IA de votre profil")
-                    st.markdown(f"""
-                    <div class="success-notification">
-                        <h4>🎯 Domaine principal détecté : <strong>{ai_profile['main_domain'].title()}</strong></h4>
-                        <p><strong>📊 Niveau d'expérience :</strong> {ai_profile['experience_level'].title()}</p>
-                        <p><strong>🔍 Mots-clés pour la recherche :</strong> {', '.join(ai_profile['keywords'])}</p>
-                        <p><strong>🎯 Seuil de compatibilité :</strong> {ai_profile['compatibility_threshold']:.0%}</p>
-                    </div>
-                    """, unsafe_allow_html=True)
-                else:
-                    st.success("Profil sauvegardé ! Complétez l'expérience et les compétences pour l'analyse IA.")
-        st.subheader("⚙️ Configuration avancée de l'IA")
-        ai_settings = user_info.get('ai_settings', {})
+    st.subheader("Profil & Configuration - formulaire à compléter")
+    with st.form("ai_profile_form"):
+        st.subheader("🧠 Profil pour l'IA")
         col1, col2 = st.columns(2)
         with col1:
-            st.write("**🕐 Planification des recherches**")
-            search_frequency = st.selectbox("Fréquence de recherche automatique",
-                                          ["Quotidienne", "Tous les 2 jours", "Hebdomadaire"],
-                                          index=0)
-            search_time = st.time_input("Heure de recherche", value=datetime.now().time().replace(hour=9, minute=0))
+            name = st.text_input("Nom complet", value=user_info.get('name', ''))
+            phone = st.text_input("Téléphone", value=user_info.get('phone', ''))
+            email_display = st.text_input("Email", value=st.session_state.current_user, disabled=True)
         with col2:
-            st.write("**🎯 Critères de qualité**")
-            min_company_size = st.selectbox("Taille d'entreprise minimum",
-                                          ["Toutes", "Startup", "PME", "Grande entreprise"],
-                                          index=0)
-            avoid_keywords = st.text_input("Mots-clés à éviter",
-                                         placeholder="Ex: stage, bénévole, commission")
-        if st.button("💾 Sauvegarder la configuration avancée"):
-            user_info['ai_settings'].update({
-                'search_frequency': search_frequency,
-                'search_time': search_time.strftime("%H:%M"),
-                'min_company_size': min_company_size,
-                'avoid_keywords': avoid_keywords.split(',') if avoid_keywords else []
-            })
-            st.success("Configuration avancée sauvegardée !")
+            address = st.text_area("Adresse", value=user_info.get('address', ''))
+        st.subheader("💼 Expérience professionnelle (pour l'IA)")
+        experience = st.text_area("Décrivez votre expérience (l'IA analysera ce texte)",
+                                  value=user_info.get('experience', ''),
+                                  height=100,
+                                  help="Plus vous êtes précis, mieux l'IA pourra vous matcher avec des offres pertinentes")
+        st.subheader("🎯 Compétences (pour l'IA)")
+        skills_input = st.text_input("Compétences (séparées par des virgules)",
+                                     value=", ".join(user_info.get('skills', [])),
+                                     help="L'IA utilisera ces compétences pour calculer la compatibilité")
+        st.subheader("📄 CV pour candidatures automatiques")
+        uploaded_file = st.file_uploader("Télécharger votre CV (utilisé par l'IA)", type=['pdf', 'doc', 'docx'])
+        if st.form_submit_button("💾 Sauvegarder le profil IA", type="primary"):
+            user_info['name'] = name
+            user_info['phone'] = phone
+            user_info['address'] = address
+            user_info['experience'] = experience
+            user_info['skills'] = [skill.strip() for skill in skills_input.split(',') if skill.strip()]
+            if uploaded_file:
+                user_info['cv_uploaded'] = True
+            if experience and skills_input:
+                profile_ai = UserProfileAI()
+                ai_profile = profile_ai.analyze_user_profile(
+                    experience,
+                    user_info['skills'],
+                    user_info.get('ai_settings', {})
+                )
+                user_info['ai_profile'] = ai_profile
+                st.success("✅ Profil sauvegardé et analysé par l'IA !")
+                st.subheader("🤖 Analyse IA de votre profil")
+                st.markdown(f"""
+                <div class="success-notification">
+                    <h4>🎯 Domaine principal détecté : <strong>{ai_profile['main_domain'].title()}</strong></h4>
+                    <p><strong>📊 Niveau d'expérience :</strong> {ai_profile['experience_level'].title()}</p>
+                    <p><strong>🔍 Mots-clés pour la recherche :</strong> {', '.join(ai_profile['keywords'])}</p>
+                    <p><strong>🎯 Seuil de compatibilité :</strong> {ai_profile['compatibility_threshold']:.0%}</p>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.success("Profil sauvegardé ! Complétez l'expérience et les compétences pour l'analyse IA.")
+
+    st.subheader("⚙️ Configuration avancée de l'IA")
+    ai_settings = user_info.get('ai_settings', {})
+    col1, col2 = st.columns(2)
+    with col1:
+        st.write("**🕐 Planification des recherches**")
+        search_frequency = st.selectbox("Fréquence de recherche automatique",
+                                        ["Quotidienne", "Tous les 2 jours", "Hebdomadaire"],
+                                        index=0)
+        search_time = st.time_input("Heure de recherche", value=datetime.now().time().replace(hour=9, minute=0))
+    with col2:
+        st.write("**🎯 Critères de qualité**")
+        min_company_size = st.selectbox("Taille d'entreprise minimum",
+                                        ["Toutes", "Startup", "PME", "Grande entreprise"],
+                                        index=0)
+        avoid_keywords = st.text_input("Mots-clés à éviter",
+                                      placeholder="Ex: stage, bénévole, commission")
+    if st.button("💾 Sauvegarder la configuration avancée"):
+        user_info['ai_settings'].update({
+            'search_frequency': search_frequency,
+            'search_time': search_time.strftime("%H:%M"),
+            'min_company_size': min_company_size,
+            'avoid_keywords': avoid_keywords.split(',') if avoid_keywords else []
+        })
+        st.success("Configuration avancée sauvegardée !")
 
         ### ONGLET 4 : Historique ###
         with tab4:
@@ -674,6 +674,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
