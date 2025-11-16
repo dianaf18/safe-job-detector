@@ -1,94 +1,31 @@
 import streamlit as st
 from datetime import datetime, timedelta
-import random
-import json
-import plotly.express as px
 
-# --- Configuration de la page ---
-st.set_page_config(
-    page_title="Safe Job Hub AI - Candidature Automatique",
-    page_icon="🤖",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
-
-# --- CSS personnalisé (optionnel) ---
-st.markdown("""
-<style>
-.main-header {text-align: center; color: #2E8B57; font-size: 3rem; margin-bottom: 2rem;}
-.stats-card {background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; border-radius: 10px; text-align: center; margin: 0.5rem;}
-.ai-status-active {background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white; padding: 1rem; border-radius: 10px; text-align: center; margin: 1rem 0; animation: pulse 2s infinite;}
-.ai-status-inactive {background: linear-gradient(135deg, #f44336 0%, #da190b 100%); color: white; padding: 1rem; border-radius: 10px; text-align: center; margin: 1rem 0;}
-.notification-card {background: #e3f2fd; padding: 1rem; border-radius: 8px; border-left: 4px solid #2196f3; margin: 1rem 0;}
-.success-notification {background: #e8f5e8; padding: 1rem; border-radius: 8px; border-left: 4px solid #4caf50; margin: 1rem 0;}
-.warning-notification {background: #fff3e0; padding: 1rem; border-radius: 8px; border-left: 4px solid #ff9800; margin: 1rem 0;}
-</style>
-""", unsafe_allow_html=True)
-
-# --- Variables de session et base utilisateurs demo ---
-if 'users_db' not in st.session_state:
-    st.session_state.users_db = {
-        "demo@example.com": {
-            "password": "demo123",
-            "name": "Jean Dupont",
-            "experience": "5 ans d'expérience en vente et développement commercial",
-            "skills": ["Vente", "Relation client", "Négociation", "CRM", "Anglais"],
-            "ai_settings": {
-                "auto_search_enabled": False, "auto_apply_enabled": False,
-                "daily_application_limit": 5, "compatibility_threshold": 0.6,
-                "preferred_job_types": ["CDI"], "salary_min": 30000, "remote_preference": False
-            },
-            "ai_stats": {
-                "total_jobs_analyzed": 0, "total_applications_sent": 0,
-                "total_responses_received": 0, "total_interviews_obtained": 0,
-                "last_activity_date": None
-            },
-            "applications_history": [],
-            "cv_uploaded": False,
-            "privacy_settings": {}
-        }
-    }
+# ——— INITIALISATIONS SESSION ———
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 if 'current_user' not in st.session_state:
     st.session_state.current_user = None
+if 'users_db' not in st.session_state:
+    st.session_state.users_db = {'demo@example.com': {'name': 'Jean', 'password': 'demo', 'experience': '', 'skills': []}}
 
-# --- Fonctions d'authentification ---
+# ——— FONCTIONS D'AUTHENTIFICATION ———
 def login_user(email, password):
-    if email in st.session_state.users_db:
-        if st.session_state.users_db[email]["password"] == password:
-            st.session_state.logged_in = True
-            st.session_state.current_user = email
-            return True
-    return False
-
-def register_user(email, password, name):
-    if email not in st.session_state.users_db:
-        st.session_state.users_db[email] = {
-            "password": password, "name": name, "experience": "",
-            "skills": [], "cv_uploaded": False, "ai_settings": {
-                "auto_search_enabled": False, "auto_apply_enabled": False,
-                "daily_application_limit": 5, "compatibility_threshold": 0.6,
-                "preferred_job_types": ["CDI"], "salary_min": 30000, "remote_preference": False
-            },
-            "ai_stats": {
-                "total_jobs_analyzed": 0, "total_applications_sent": 0,
-                "total_responses_received": 0, "total_interviews_obtained": 0,
-                "last_activity_date": None
-            },
-            "applications_history": [], "privacy_settings": {}
-        }
+    if email in st.session_state.users_db and st.session_state.users_db[email]["password"] == password:
+        st.session_state.logged_in = True
+        st.session_state.current_user = email
         return True
     return False
 
 def logout_user():
-    st.session_state.logged_in = False
-    st.session_state.current_user = None
+    st.session_state.logged_in, st.session_state.current_user = False, None
 
-# --- FONCTION PRINCIPALE ---
+# ——— FONCTION PRINCIPALE : TOUJOURS DANS UNE FONCTION, AVEC BONNE INDENTATION ———
 def main():
-    st.markdown('<h1 class="main-header">🤖 Safe Job Hub AI - Candidature Automatique</h1>', unsafe_allow_html=True)
-    # Sidebar connexion/inscription
+    # Configuration de la page
+    st.set_page_config(page_title="Safe Job Hub AI", layout="wide")
+
+    # Sidebar Auth
     with st.sidebar:
         if not st.session_state.logged_in:
             st.header("🔐 Connexion")
@@ -98,37 +35,29 @@ def main():
                 password = st.text_input("Mot de passe", type="password")
                 if st.button("Se connecter"):
                     if login_user(email, password):
-                        st.success("Connexion réussie !")
-                        st.experimental_rerun()
-                    else:
-                        st.error("Email ou mot de passe incorrect")
-            else:
-                new_email = st.text_input("Nouvel email")
-                new_password = st.text_input("Nouveau mot de passe", type="password")
-                new_name = st.text_input("Nom complet")
-                if st.button("Créer votre compte"):
-                    if register_user(new_email, new_password, new_name):
-                        st.success("Compte créé ! Connectez-vous ci-dessus.")
-                    else:
-                        st.error("Email déjà utilisé")
+                        st.success("Connexion réussie !"); st.experimental_rerun()
+                    else: st.error("Email ou mot de passe incorrect")
         else:
             user_info = st.session_state.users_db[st.session_state.current_user]
-            st.write(f"👋 Bonjour {user_info['name']} !")
+            st.write(f"👋 {user_info['name']} !")
             if st.button("Se déconnecter"):
-                logout_user()
-                st.experimental_rerun()
-    
-    # --- CONTENU PRINCIPAL ---
-    if st.session_state.get('logged_in', False):
+                logout_user(); st.experimental_rerun()
+
+    # -------------------- INTERFACE PRINCIPALE + ONGLETS --------------------
+    if st.session_state.logged_in:
         user_info = st.session_state.users_db[st.session_state.current_user]
+        # ——— DÉCLARATION UNIFIQUE DES ONGLETS (indenter tout pareil) ———
         tab1, tab2, tab3, tab4, tab5 = st.tabs([
-            "🤖 IA Candidature", "📊 Dashboard IA",
-            "👤 Profil & Config", "📋 Historique", "🛡️ Sécurité"
+            "🤖 IA Candidature",
+            "📊 Dashboard IA",
+            "👤 Profil & Config",
+            "📋 Historique",
+            "🛡️ Sécurité"
         ])
 
-        ### ONGLET 1 : IA Candidature ###
+        # -------------------- ONGLET 1 : IA Candidature ———
         with tab1:
-            st.subheader("Module IA Candidature - à compléter selon tes besoins")
+            st.header("🤖 IA Candidature")
             profile_ai = UserProfileAI()
     ai_settings = user_info.get('ai_settings', {})
     user_criteria = profile_ai.analyze_user_profile(
@@ -217,9 +146,9 @@ def main():
                                 </div>
                             """, unsafe_allow_html=True)
 
-        ### ONGLET 2 : Dashboard IA ###
+        # -------------------- ONGLET 2 : Dashboard IA ———
         with tab2:
-            st.subheader("Dashboard IA - statistiques et réglages avancés à compléter")
+            st.header("📊 Dashboard IA")
             col1, col2 = st.columns(2)
     with col1:
         st.subheader("⚙️ Configuration de l'IA")
@@ -314,7 +243,7 @@ def main():
                              title="🎯 Répartition des scores de compatibilité")
                 fig.update_traces(textposition='inside', textinfo='percent+label')
                 st.plotly_chart(fig, use_container_width=True)
-    if i_stats.get('last_activity_date'):
+    if ai_stats.get('last_activity_date'):
         st.subheader("📋 Rapport IA du jour")
         notification_system = NotificationSystemAI()
         daily_report = notification_system.generate_daily_report(
@@ -338,93 +267,94 @@ def main():
                 </div>
                 """, unsafe_allow_html=True)
 
-
-       with tab3:
-            st.subheader("Profil & Configuration - formulaire à compléter")
-       with st.form("ai_profile_form"):
+        # -------------------- ONGLET 3 : Profil & Config ———
+        with tab3:
+            st.subheader("👤 Profil & Configuration")
+            st.write("Modifier ici votre profil et vos paramètres IA.")
+            with st.form("ai_profile_form"):
             st.subheader("🧠 Profil pour l'IA")
             col1, col2 = st.columns(2)
-       with col1:
-            name = st.text_input("Nom complet", value=user_info.get('name', ''))
-            phone = st.text_input("Téléphone", value=user_info.get('phone', ''))
-            email_display = st.text_input("Email", value=st.session_state.current_user, disabled=True)
-       with col2:
-            address = st.text_area("Adresse", value=user_info.get('address', ''))
+            with col1:
+                name = st.text_input("Nom complet", value=user_info.get('name', ''))
+                phone = st.text_input("Téléphone", value=user_info.get('phone', ''))
+                email_display = st.text_input("Email", value=st.session_state.current_user, disabled=True)
+            with col2:
+                address = st.text_area("Adresse", value=user_info.get('address', ''))
             st.subheader("💼 Expérience professionnelle (pour l'IA)")
             experience = st.text_area("Décrivez votre expérience (l'IA analysera ce texte)",
-                                  value=user_info.get('experience', ''),
-                                  height=100,
-                                  help="Plus vous êtes précis, mieux l'IA pourra vous matcher avec des offres pertinentes")
-           st.subheader("🎯 Compétences (pour l'IA)")
-           skills_input = st.text_input("Compétences (séparées par des virgules)",
-                                     value=", ".join(user_info.get('skills', [])),
-                                     help="L'IA utilisera ces compétences pour calculer la compatibilité")
-          st.subheader("📄 CV pour candidatures automatiques")
-          uploaded_file = st.file_uploader("Télécharger votre CV (utilisé par l'IA)", type=['pdf', 'doc', 'docx'])
-          if st.form_submit_button("💾 Sauvegarder le profil IA", type="primary"):
-            user_info['name'] = name
-            user_info['phone'] = phone
-            user_info['address'] = address
-            user_info['experience'] = experience
-            user_info['skills'] = [skill.strip() for skill in skills_input.split(',') if skill.strip()]
-            if uploaded_file:
-                user_info['cv_uploaded'] = True
-            if experience and skills_input:
-                profile_ai = UserProfileAI()
-                ai_profile = profile_ai.analyze_user_profile(
-                    experience,
-                    user_info['skills'],
-                    user_info.get('ai_settings', {})
-                )
-                user_info['ai_profile'] = ai_profile
-                st.success("✅ Profil sauvegardé et analysé par l'IA !")
-                st.subheader("🤖 Analyse IA de votre profil")
-                st.markdown(f"""
-                <div class="success-notification">
-                    <h4>🎯 Domaine principal détecté : <strong>{ai_profile['main_domain'].title()}</strong></h4>
-                    <p><strong>📊 Niveau d'expérience :</strong> {ai_profile['experience_level'].title()}</p>
-                    <p><strong>🔍 Mots-clés pour la recherche :</strong> {', '.join(ai_profile['keywords'])}</p>
-                    <p><strong>🎯 Seuil de compatibilité :</strong> {ai_profile['compatibility_threshold']:.0%}</p>
-                </div>
-                """, unsafe_allow_html=True)
-            else:
-                st.success("Profil sauvegardé ! Complétez l'expérience et les compétences pour l'analyse IA.")
+                                     value=user_info.get('experience', ''),
+                                     height=100,
+                                     help="Plus vous êtes précis, mieux l'IA pourra vous matcher avec des offres pertinentes")
+            st.subheader("🎯 Compétences (pour l'IA)")
+            skills_input = st.text_input("Compétences (séparées par des virgules)",
+                                       value=", ".join(user_info.get('skills', [])),
+                                       help="L'IA utilisera ces compétences pour calculer la compatibilité")
+            st.subheader("📄 CV pour candidatures automatiques")
+            uploaded_file = st.file_uploader("Télécharger votre CV (utilisé par l'IA)", type=['pdf', 'doc', 'docx'])
+            if st.form_submit_button("💾 Sauvegarder le profil IA", type="primary"):
+                user_info['name'] = name
+                user_info['phone'] = phone
+                user_info['address'] = address
+                user_info['experience'] = experience
+                user_info['skills'] = [skill.strip() for skill in skills_input.split(',') if skill.strip()]
+                if uploaded_file:
+                    user_info['cv_uploaded'] = True
+                if experience and skills_input:
+                    profile_ai = UserProfileAI()
+                    ai_profile = profile_ai.analyze_user_profile(
+                        experience,
+                        user_info['skills'],
+                        user_info.get('ai_settings', {})
+                    )
+                    user_info['ai_profile'] = ai_profile
+                    st.success("✅ Profil sauvegardé et analysé par l'IA !")
+                    st.subheader("🤖 Analyse IA de votre profil")
+                    st.markdown(f"""
+                    <div class="success-notification">
+                        <h4>🎯 Domaine principal détecté : <strong>{ai_profile['main_domain'].title()}</strong></h4>
+                        <p><strong>📊 Niveau d'expérience :</strong> {ai_profile['experience_level'].title()}</p>
+                        <p><strong>🔍 Mots-clés pour la recherche :</strong> {', '.join(ai_profile['keywords'])}</p>
+                        <p><strong>🎯 Seuil de compatibilité :</strong> {ai_profile['compatibility_threshold']:.0%}</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.success("Profil sauvegardé ! Complétez l'expérience et les compétences pour l'analyse IA.")
+        st.subheader("⚙️ Configuration avancée de l'IA")
+        ai_settings = user_info.get('ai_settings', {})
+        col1, col2 = st.columns(2)
+        with col1:
+            st.write("**🕐 Planification des recherches**")
+            search_frequency = st.selectbox("Fréquence de recherche automatique",
+                                          ["Quotidienne", "Tous les 2 jours", "Hebdomadaire"],
+                                          index=0)
+            search_time = st.time_input("Heure de recherche", value=datetime.now().time().replace(hour=9, minute=0))
+        with col2:
+            st.write("**🎯 Critères de qualité**")
+            min_company_size = st.selectbox("Taille d'entreprise minimum",
+                                          ["Toutes", "Startup", "PME", "Grande entreprise"],
+                                          index=0)
+            avoid_keywords = st.text_input("Mots-clés à éviter",
+                                         placeholder="Ex: stage, bénévole, commission")
+        if st.button("💾 Sauvegarder la configuration avancée"):
+            user_info['ai_settings'].update({
+                'search_frequency': search_frequency,
+                'search_time': search_time.strftime("%H:%M"),
+                'min_company_size': min_company_size,
+                'avoid_keywords': avoid_keywords.split(',') if avoid_keywords else []
+            })
+            st.success("Configuration avancée sauvegardée !")
 
-      st.subheader("⚙️ Configuration avancée de l'IA")
-      ai_settings = user_info.get('ai_settings', {})
-      col1, col2 = st.columns(2)
-    with col1:
-        st.write("**🕐 Planification des recherches**")
-        search_frequency = st.selectbox("Fréquence de recherche automatique",
-                                        ["Quotidienne", "Tous les 2 jours", "Hebdomadaire"],
-                                        index=0)
-        search_time = st.time_input("Heure de recherche", value=datetime.now().time().replace(hour=9, minute=0))
-    with col2:
-        st.write("**🎯 Critères de qualité**")
-        min_company_size = st.selectbox("Taille d'entreprise minimum",
-                                        ["Toutes", "Startup", "PME", "Grande entreprise"],
-                                        index=0)
-        avoid_keywords = st.text_input("Mots-clés à éviter",
-                                       placeholder="Ex: stage, bénévole, commission")
-    if st.button("💾 Sauvegarder la configuration avancée"):
-        user_info['ai_settings'].update({
-            'search_frequency': search_frequency,
-            'search_time': search_time.strftime("%H:%M"),
-            'min_company_size': min_company_size,
-            'avoid_keywords': avoid_keywords.split(',') if avoid_keywords else []
-        })
-        st.success("Configuration avancée sauvegardée !")
-    
-        ### ONGLET 4 : Historique ###
+        # -------------------- ONGLET 4 : Historique ———
         with tab4:
-            st.subheader("Historique des candidatures IA - à compléter")
-            applications_history = user_info.get('applications_history', [])
+            st.header("📋 Historique")
+            st.header("📋 Historique des Candidatures IA")
+        applications_history = user_info.get('applications_history', [])
         if applications_history:
             st.subheader(f"📊 {len(applications_history)} candidatures envoyées par l'IA")
             col1, col2, col3 = st.columns(3)
             with col1:
                 filter_company = st.selectbox("Filtrer par entreprise",
-                                             ["Toutes"] + list(set([app['job']['company'] for app in applications_istory])))
+                                             ["Toutes"] + list(set([app['job']['company'] for app in applications_history])))
             with col2:
                 filter_score = st.selectbox("Filtrer par score",
                                            ["Tous", "Élevé (80%+)", "Moyen (60-80%)", "Faible (<60%)"])
@@ -493,9 +423,9 @@ def main():
                         st.subheader("✉️ Lettre de motivation générée par l'IA")
                         st.text_area("Lettre générée", app['application']['cover_letter'], height=200, disabled=True)
 
-        ### ONGLET 5 : Sécurité & Confidentialité ###
+        # -------------------- ONGLET 5 : Sécurité ———
         with tab5:
-            st.header("🛡️ Sécurité & Confidentialité")
+            st.header("🛡️ Sécurité")
             st.subheader("🔐 Gestion des accès")
         
         # Informations de sécurité
@@ -622,7 +552,7 @@ def main():
             <h3>Dashboard Complet</h3>
             <p>Suivi en temps réel de vos candidatures</p>
         </div>
- """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
     
     st.markdown("""
     ## 🚀 Fonctionnalités de l'IA
@@ -672,8 +602,14 @@ def main():
     - **🎯 Matching Intelligent** : Score de compatibilité pour chaque offre
     """)
 
+    # -------------------- NON CONNECTÉ ———
+    else:
+        st.info("Connectez-vous pour accéder à l’application.")
+
+# ——— LANCEMENT DE L'APP (NE JAMAIS TOUCHER ICI) ———
 if __name__ == "__main__":
     main()
+
 
 
 
