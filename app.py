@@ -329,7 +329,7 @@ def main():
             <p><strong>🏢 Entreprises ciblées :</strong> {', '.join(daily_report['top_companies'][:3]) if daily_report['top_companies'] else 'Aucune'}</p>
         </div>
         """, unsafe_allow_html=True)
-        if daily_report['recommendations]:
+        if daily_report['recommendations']:
             st.subheader("💡 Recommandations IA")
             for rec in daily_report['recommendations']:
                 st.markdown(f"""
@@ -673,6 +673,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
