@@ -2,6 +2,20 @@ import streamlit as st
 from datetime import datetime, timedelta
 
 st.set_page_config(page_title="Safe Job Hub AI", layout="wide")
+import streamlit as st
+from datetime import datetime, timedelta
+
+st.set_page_config(page_title="Safe Job Hub AI", layout="wide")
+
+if 'logged_in' not in st.session_state:
+    st.session_state.logged_in = False
+
+if 'current_user' not in st.session_state:
+    st.session_state.current_user = None
+
+if 'users_db' not in st.session_state:
+    st.session_state.users_db = {}
+
 def main():
 # ——— INITIALISATIONS SESSION ———
     if 'logged_in' not in st.session_state:
@@ -536,6 +550,7 @@ else:
     st.info("👈 Veuillez vous connecter pour accéder à Safe Job Hub AI.")
 if __name__ == "__main__":
     main()
+
 
 
 
