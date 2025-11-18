@@ -346,8 +346,6 @@ if st.session_state.logged_in:
     # -------------------- ONGLET 5 --------------------
     with tab5:
         st.header("🛡️ Sécurité & Confidentialité")
-                st.header("🛡️ Sécurité & Confidentialité")
-        
         st.subheader("🔐 Gestion des accès")
         
         # Informations de sécurité
@@ -527,6 +525,7 @@ else:
     st.info("👈 Veuillez vous connecter pour accéder à Safe Job Hub AI.")
 if __name__ == "__main__":
     main()
+
 
 
 
