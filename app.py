@@ -1,13 +1,22 @@
 import streamlit as st
 from datetime import datetime, timedelta
 
+st.set_page_config(page_title="Safe Job Hub AI", layout="wide")
+
 # ——— INITIALISATIONS SESSION ———
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 if 'current_user' not in st.session_state:
     st.session_state.current_user = None
 if 'users_db' not in st.session_state:
-    st.session_state.users_db = {'demo@example.com': {'name': 'Jean', 'password': 'demo', 'experience': '', 'skills': []}}
+    st.session_state.users_db = {
+        'demo@example.com': {
+            'name': 'Jean',
+            'password': 'demo',
+            'experience': '',
+            'skills': []
+        }
+    }
 
 # ——— FONCTIONS D'AUTHENTIFICATION ———
 def login_user(email, password):
@@ -18,7 +27,9 @@ def login_user(email, password):
     return False
 
 def logout_user():
-    st.session_state.logged_in, st.session_state.current_user = False, None
+    st.session_state.logged_in = False
+    st.session_state.current_user = None
+
 
 # ——— FONCTION PRINCIPALE : TOUJOURS DANS UNE FONCTION, AVEC BONNE INDENTATION ———
 def main():
@@ -525,6 +536,7 @@ else:
     st.info("👈 Veuillez vous connecter pour accéder à Safe Job Hub AI.")
 if __name__ == "__main__":
     main()
+
 
 
 
