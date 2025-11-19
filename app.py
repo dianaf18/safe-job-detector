@@ -732,10 +732,10 @@ def main():
 
             profile_ai = UserProfileAI()
             ai_settings = user_info.get('ai_settings', {})
-              user_criteria = profile_ai.analyze_user_profile(
-              user_info.get('experience', ''),
-              user_info.get('skills', []),
-              ai_settings
+            user_criteria = profile_ai.analyze_user_profile(
+            user_info.get('experience', ''),
+            user_info.get('skills', []),
+            ai_settings
     )
     search_ai = AutoJobSearchAI()
     filtered_jobs = search_ai.intelligent_job_search(user_criteria)
@@ -1272,6 +1272,7 @@ with tab2:
 
 if __name__ == "__main__":
     main()
+
 
 
 
