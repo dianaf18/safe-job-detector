@@ -757,9 +757,9 @@ else:
     st.subheader("🏆 Offres compatibles avec votre profil")
     # Le reste de ta logique...
 
-        for i, job in enumerate(jobs_to_show):
-            with st.container():
-                col1, col2 = st.columns([5, 1])
+    for i, job in enumerate(jobs_to_show):
+        with st.container():
+            col1, col2 = st.columns([5, 1])
                 with col1:
                     st.markdown(f"**{i + 1}. {job.get('title', '')}**")
                     st.write(f"🏢 {job.get('company', '')} • 📍 {job.get('location', '')}")
@@ -1278,6 +1278,7 @@ else:
 
 if __name__ == "__main__":
     main()
+
 
 
 
