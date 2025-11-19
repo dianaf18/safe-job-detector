@@ -733,40 +733,40 @@ def main():
             profile_ai = UserProfileAI()
             ai_settings = user_info.get('ai_settings', {})
             user_criteria = profile_ai.analyze_user_profile(
-            user_info.get('experience', ''),
-            user_info.get('skills', []),
-            ai_settings
-    )
-    search_ai = AutoJobSearchAI()
-    filtered_jobs = search_ai.intelligent_job_search(user_criteria)
-    jobs = filtered_jobs if filtered_jobs is not None else []
+                user_info.get('experience', ''),
+                user_info.get('skills', []),
+                ai_settings
+            )
+            search_ai = AutoJobSearchAI()
+            filtered_jobs = search_ai.intelligent_job_search(user_criteria)
+            jobs = filtered_jobs if filtered_jobs is not None else []
 
-    # Pagination
-    if 'jobs_to_show_count' not in st.session_state or st.session_state.jobs_to_show_count < 10:
-        st.session_state.jobs_to_show_count = 10
-    jobs_to_show = jobs[:st.session_state.jobs_to_show_count]
+            # Pagination
+            if 'jobs_to_show_count' not in st.session_state or st.session_state.jobs_to_show_count < 10:
+                st.session_state.jobs_to_show_count = 10
+            jobs_to_show = jobs[:st.session_state.jobs_to_show_count]
 
-    st.write(f"**DEBUG:** Nombre d'offres trouvées : {len(jobs)}")
+            st.write(f"**DEBUG:** Nombre d'offres trouvées : {len(jobs)}")
 
-    if not jobs:
-        st.error("Aucune offre trouvée ! Vérifiez vos critères et APIs.")
-    else:
-        st.subheader("🏆 Offres compatibles avec votre profil")
-        for i, job in enumerate(jobs_to_show):
-            with st.container():
-                col1, col2 = st.columns([5, 1])
-                with col1:
-                    st.markdown(f"**{i + 1}. {job.get('title', '')}**")
-                    st.write(f"🏢 {job.get('company', '')} • 📍 {job.get('location', '')}")
-                    st.write(job.get('description', '')[:200] + "...")
-                with col2:
-                    st.link_button("🔗 Voir l'offre", job.get('url', ''), use_container_width=True)
-            st.divider()
+            if not jobs:
+                st.error("Aucune offre trouvée ! Vérifiez vos critères et APIs.")
+            else:
+                st.subheader("🏆 Offres compatibles avec votre profil")
+                for i, job in enumerate(jobs_to_show):
+                    with st.container():
+                        col1, col2 = st.columns([5, 1])
+                        with col1:
+                            st.markdown(f"**{i + 1}. {job.get('title', '')}**")
+                            st.write(f"🏢 {job.get('company', '')} • 📍 {job.get('location', '')}")
+                            st.write(job.get('description', '')[:200] + "...")
+                        with col2:
+                            st.link_button("🔗 Voir l'offre", job.get('url', ''), use_container_width=True)
+                    st.divider()
 
-        if st.session_state.jobs_to_show_count < len(jobs):
-            if st.button("Afficher 10 offres de plus"):
-                st.session_state.jobs_to_show_count += 10
-                st.experimental_rerun()
+                if st.session_state.jobs_to_show_count < len(jobs):
+                    if st.button("Afficher 10 offres de plus"):
+                        st.session_state.jobs_to_show_count += 10
+                        st.experimental_rerun()
 
     # Test IA
     st.subheader("🧪 Test de l'IA de Candidature")
@@ -1272,6 +1272,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
