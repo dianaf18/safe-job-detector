@@ -741,7 +741,7 @@ def main():
             filtered_jobs = search_ai.intelligent_job_search(user_criteria)
             jobs = filtered_jobs if filtered_jobs is not None else []
 
-    # juste avant ta pagination !
+# juste avant ta pagination !
 jobs = jobs if 'jobs' in locals() else []
 
 # Pagination
@@ -749,13 +749,14 @@ if 'jobs_to_show_count' not in st.session_state or st.session_state.jobs_to_show
     st.session_state.jobs_to_show_count = 10
 jobs_to_show = jobs[:st.session_state.jobs_to_show_count]
 
+st.write(f"**DEBUG:** Nombre d'offres trouvées : {len(jobs)}")
 
-    st.write(f"**DEBUG:** Nombre d'offres trouvées : {len(jobs)}")
+if not jobs:
+    st.error("Aucune offre trouvée ! Vérifiez vos critères et APIs.")
+else:
+    st.subheader("🏆 Offres compatibles avec votre profil")
+    # Le reste de ta logique...
 
-    if not jobs:
-        st.error("Aucune offre trouvée ! Vérifiez vos critères et APIs.")
-    else:
-        st.subheader("🏆 Offres compatibles avec votre profil")
         for i, job in enumerate(jobs_to_show):
             with st.container():
                 col1, col2 = st.columns([5, 1])
@@ -1277,6 +1278,7 @@ jobs_to_show = jobs[:st.session_state.jobs_to_show_count]
 
 if __name__ == "__main__":
     main()
+
 
 
 
