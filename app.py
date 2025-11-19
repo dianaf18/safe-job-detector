@@ -818,15 +818,15 @@ def main():
                                 </div>
                             """, unsafe_allow_html=True)
 
-        with tab2:
-           st.header("📊 Dashboard Intelligence Artificielle")
-           col1, col2 = st.columns(2)
-           with col1:
-              st.subheader("⚙️ Configuration de l'IA")
-              ai_settings = user_info.get('ai_settings', {})
-              auto_search = st.toggle(
-              "🔍 Recherche automatique quotidienne",
-              value=ai_settings.get('auto_search_enabled', False)
+       with tab2:
+    st.header("📊 Dashboard Intelligence Artificielle")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.subheader("⚙️ Configuration de l'IA")
+        ai_settings = user_info.get('ai_settings', {})
+        auto_search = st.toggle(
+            "🔍 Recherche automatique quotidienne",
+            value=ai_settings.get('auto_search_enabled', False)
         )
         auto_apply = st.toggle(
             "🚀 Candidature automatique",
@@ -846,13 +846,14 @@ def main():
             'daily_application_limit': daily_limit,
             'compatibility_threshold': compatibility_threshold
         })
-         with col2:
-              st.subheader("🎯 Critères de recherche")
-              job_types = st.multiselect(
-              "Types de postes",
-              ["CDI", "CDD", "Stage", "Freelance", "Interim"],
-              default=ai_settings.get('preferred_job_types', ["CDI"])
+    with col2:
+        st.subheader("🎯 Critères de recherche")
+        job_types = st.multiselect(
+            "Types de postes",
+            ["CDI", "CDD", "Stage", "Freelance", "Interim"],
+            default=ai_settings.get('preferred_job_types', ["CDI"])
         )
+  
         salary_min = st.number_input(
             "💰 Salaire minimum (€)", 0, 100000,
             ai_settings.get('salary_min', 30000)
@@ -1272,6 +1273,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
