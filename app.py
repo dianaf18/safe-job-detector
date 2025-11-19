@@ -823,8 +823,8 @@ def main():
     col1, col2 = st.columns(2)
     with col1:
         st.subheader("⚙️ Configuration de l'IA")
-        ai_settings = user_info.get('ai_settings', {})
-        auto_search = st.toggle(
+            ai_settings = user_info.get('ai_settings', {})
+            auto_search = st.toggle(
             "🔍 Recherche automatique quotidienne",
             value=ai_settings.get('auto_search_enabled', False)
         )
@@ -1273,6 +1273,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
