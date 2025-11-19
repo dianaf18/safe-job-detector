@@ -761,12 +761,12 @@ else:
        with st.container():
         col1, col2 = st.columns([5, 1])
        with col1:
-       st.markdown(f"**{i + 1}. {job.get('title', '')}**")
-       st.write(f"🏢 {job.get('company', '')} • 📍 {job.get('location', '')}")
-       st.write(job.get('description', '')[:200] + "...")
+        st.markdown(f"**{i + 1}. {job.get('title', '')}**")
+        st.write(f"🏢 {job.get('company', '')} • 📍 {job.get('location', '')}")
+        st.write(job.get('description', '')[:200] + "...")
        with col2:
-       st.link_button("🔗 Voir l'offre", job.get('url', ''), use_container_width=True)
-       st.divider()
+        st.link_button("🔗 Voir l'offre", job.get('url', ''), use_container_width=True)
+        st.divider()
 
         if st.session_state.jobs_to_show_count < len(jobs):
             if st.button("Afficher 10 offres de plus"):
@@ -1278,6 +1278,7 @@ else:
 
 if __name__ == "__main__":
     main()
+
 
 
 
