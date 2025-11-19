@@ -2,10 +2,6 @@ import streamlit as st
 from datetime import datetime, timedelta
 
 st.set_page_config(page_title="Safe Job Hub AI", layout="wide")
-import streamlit as st
-from datetime import datetime, timedelta
-
-st.set_page_config(page_title="Safe Job Hub AI", layout="wide")
 
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
@@ -14,25 +10,15 @@ if 'current_user' not in st.session_state:
     st.session_state.current_user = None
 
 if 'users_db' not in st.session_state:
-    st.session_state.users_db = {}
-
-def main():
-# ——— INITIALISATIONS SESSION ———
-    if 'logged_in' not in st.session_state:
-        st.session_state.logged_in = False
-    if 'current_user' not in st.session_state:
-        st.session_state.current_user = None
-    if 'users_db' not in st.session_state:
-        st.session_state.users_db = {
-            'demo@example.com': {
-                'name': 'Jean',
-                'password': 'demo',
-                'experience': '',
-                'skills': []
+    st.session_state.users_db = {
+        'demo@example.com': {
+            'name': 'Jean',
+            'password': 'demo',
+            'experience': '',
+            'skills': []
         }
     }
 
-# ——— FONCTIONS D'AUTHENTIFICATION ———
 def login_user(email, password):
     if email in st.session_state.users_db and st.session_state.users_db[email]["password"] == password:
         st.session_state.logged_in = True
@@ -44,13 +30,10 @@ def logout_user():
     st.session_state.logged_in = False
     st.session_state.current_user = None
 
-
-# ——— FONCTION PRINCIPALE : TOUJOURS DANS UNE FONCTION, AVEC BONNE INDENTATION ———
 def main():
-    # Configuration de la page
-    st.set_page_config(page_title="Safe Job Hub AI", layout="wide")
+    # (Ton code main complet ici ! Tout le core : sidebar, onglets, etc.)
 
-    # Sidebar Auth
+    # Exemple :
     with st.sidebar:
         if not st.session_state.logged_in:
             st.header("🔐 Connexion")
@@ -60,13 +43,16 @@ def main():
                 password = st.text_input("Mot de passe", type="password")
                 if st.button("Se connecter"):
                     if login_user(email, password):
-                        st.success("Connexion réussie !"); st.experimental_rerun()
-                    else: st.error("Email ou mot de passe incorrect")
+                        st.success("Connexion réussie !")
+                        st.experimental_rerun()
+                    else:
+                        st.error("Email ou mot de passe incorrect")
         else:
             user_info = st.session_state.users_db[st.session_state.current_user]
             st.write(f"👋 {user_info['name']} !")
             if st.button("Se déconnecter"):
-                logout_user(); st.experimental_rerun()
+                logout_user()
+                st.experimental_rerun()
 
     # -------------------- INTERFACE PRINCIPALE + ONGLETS --------------------
 if st.session_state.logged_in:
@@ -550,6 +536,7 @@ else:
     st.info("👈 Veuillez vous connecter pour accéder à Safe Job Hub AI.")
 if __name__ == "__main__":
     main()
+
 
 
 
