@@ -818,7 +818,7 @@ def main():
                                 </div>
                             """, unsafe_allow_html=True)
 
-       with tab2:
+         with tab2:
     st.header("📊 Dashboard Intelligence Artificielle")
     col1, col2 = st.columns(2)
     with col1:
@@ -1273,6 +1273,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
