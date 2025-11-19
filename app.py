@@ -846,12 +846,12 @@ def main():
             'daily_application_limit': daily_limit,
             'compatibility_threshold': compatibility_threshold
         })
-    with col2:
-        st.subheader("🎯 Critères de recherche")
-        job_types = st.multiselect(
-            "Types de postes",
-            ["CDI", "CDD", "Stage", "Freelance", "Interim"],
-            default=ai_settings.get('preferred_job_types', ["CDI"])
+           with col2:
+              st.subheader("🎯 Critères de recherche")
+              job_types = st.multiselect(
+              "Types de postes",
+              ["CDI", "CDD", "Stage", "Freelance", "Interim"],
+              default=ai_settings.get('preferred_job_types', ["CDI"])
         )
         salary_min = st.number_input(
             "💰 Salaire minimum (€)", 0, 100000,
@@ -1272,6 +1272,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
