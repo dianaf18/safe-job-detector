@@ -846,7 +846,7 @@ def main():
             'daily_application_limit': daily_limit,
             'compatibility_threshold': compatibility_threshold
         })
-           with col2:
+         with col2:
               st.subheader("🎯 Critères de recherche")
               job_types = st.multiselect(
               "Types de postes",
@@ -1272,6 +1272,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
